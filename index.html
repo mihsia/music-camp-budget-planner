@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>音樂班寒暑訓經費規劃</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div>
+          <p class="rail-label">經費情境</p>
+          <h1>音樂班寒暑訓經費規劃</h1>
+        </div>
+
+        <button id="newScenarioBtn" class="primary-action" type="button">新增情境</button>
+
+        <div class="scenario-list" id="scenarioList" aria-label="已儲存情境"></div>
+
+        <div class="storage-panel">
+          <p id="saveStatus">尚未儲存</p>
+          <button id="saveScenarioBtn" type="button">儲存目前資料</button>
+          <button id="duplicateScenarioBtn" type="button">複製情境</button>
+          <button id="exportJsonBtn" type="button">匯出備份</button>
+          <label class="file-import">
+            匯入備份
+            <input id="importJsonInput" type="file" accept="application/json" />
+          </label>
+          <button id="connectDriveBtn" type="button">連接 Google Drive</button>
+          <button id="uploadDriveBtn" type="button">備份到雲端</button>
+          <button id="loadDriveBtn" type="button">讀取雲端備份</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="page-kicker">String Orchestra A</p>
+            <h2>外聘師資鐘點費與學生自負額試算</h2>
+          </div>
+          <div class="totals-strip" aria-label="經費摘要">
+            <div>
+              <span>總鐘點費</span>
+              <strong id="totalFeeTop">$0</strong>
+            </div>
+            <div>
+              <span>公費補助</span>
+              <strong id="subsidyTop">$0</strong>
+            </div>
+            <div>
+              <span>每生自負額</span>
+              <strong id="perStudentTop">$0</strong>
+            </div>
+          </div>
+        </header>
+
+        <section class="stage-flow" aria-label="資料輸入階段">
+          <article class="stage stage-teachers">
+            <span>1</span>
+            <div>
+              <h3>師資設定</h3>
+              <p>分部課、合奏課程與堂課單價</p>
+            </div>
+          </article>
+          <article class="stage stage-schedule">
+            <span>2</span>
+            <div>
+              <h3>課程期程</h3>
+              <p>寒訓、暑訓多階段區間與節數</p>
+            </div>
+          </article>
+          <article class="stage stage-funding">
+            <span>3</span>
+            <div>
+              <h3>經費分攤</h3>
+              <p>公費補助與弦樂 A 團平均分攤</p>
+            </div>
+          </article>
+          <article class="stage stage-reports">
+            <span>4</span>
+            <div>
+              <h3>報表輸出</h3>
+              <p>PDF、Excel 365、Word 繳費通知單</p>
+            </div>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <div class="input-stack">
+            <section class="panel teachers-panel">
+              <div class="panel-heading">
+                <div>
+                  <p>階段 1</p>
+                  <h3>外聘老師與鐘點費</h3>
+                </div>
+              </div>
+              <div class="course-table" id="courseTable" aria-label="課程師資費用設定">
+                <div class="course-head">
+                  <span>課程類型</span>
+                  <span>老師人數</span>
+                  <span>每堂單價</span>
+                  <span>累計節數</span>
+                  <span>小計</span>
+                </div>
+                <div id="courseRows"></div>
+              </div>
+            </section>
+
+            <section class="panel schedule-panel">
+              <div class="panel-heading">
+                <div>
+                  <p>階段 2</p>
+                  <h3>寒訓 / 暑訓期程</h3>
+                </div>
+                <div class="segmented" role="tablist" aria-label="訓練類型">
+                  <button id="winterTab" type="button" data-camp="winter">寒訓</button>
+                  <button id="summerTab" type="button" data-camp="summer">暑訓</button>
+                </div>
+              </div>
+              <div class="schedule-grid">
+                <label>
+                  情境名稱
+                  <input id="scenarioName" type="text" />
+                </label>
+                <div class="schedule-range">
+                  <span>總期程</span>
+                  <strong id="dateRangeText">未設定</strong>
+                </div>
+                <button id="addPeriodBtn" class="inline-action" type="button">新增階段</button>
+              </div>
+              <div class="period-table" aria-label="多階段上課區間">
+                <div class="period-head">
+                  <span>階段名稱</span>
+                  <span>開始日期</span>
+                  <span>結束日期</span>
+                  <span>分部節數</span>
+                  <span>合奏節數</span>
+                  <span></span>
+                </div>
+                <div id="periodRows"></div>
+              </div>
+            </section>
+
+            <section class="panel funding-panel">
+              <div class="panel-heading">
+                <div>
+                  <p>階段 3</p>
+                  <h3>公費補助與學生分攤</h3>
+                </div>
+              </div>
+              <div class="funding-grid">
+                <label>
+                  弦樂 A 團學生人數
+                  <input id="studentCount" type="number" min="1" step="1" />
+                </label>
+                <label>
+                  公費補助額度
+                  <input id="publicSubsidy" type="number" min="0" step="100" />
+                </label>
+                <label>
+                  繳費期限
+                  <input id="paymentDue" type="date" />
+                </label>
+                <label>
+                  收款備註
+                  <input id="paymentNote" type="text" />
+                </label>
+              </div>
+            </section>
+
+            <section class="panel drive-panel">
+              <div class="panel-heading">
+                <div>
+                  <p>雲端備份</p>
+                  <h3>Google Drive 連線設定</h3>
+                </div>
+              </div>
+              <div class="drive-grid">
+                <label>
+                  Google OAuth Client ID
+                  <input id="googleClientId" type="text" placeholder="貼上 Web client ID 後即可連接 Drive" />
+                </label>
+                <div class="drive-status">
+                  <span>雲端狀態</span>
+                  <strong id="driveStatus">尚未連接</strong>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="output-stack">
+            <section class="summary-board">
+              <div class="staff-lines" aria-hidden="true"></div>
+              <div class="summary-heading">
+                <div>
+                  <p>即時計算</p>
+                  <h3 id="summaryTitle">暑訓經費分攤</h3>
+                </div>
+                <span id="scenarioBadge">未儲存</span>
+              </div>
+              <dl class="calc-list">
+                <div>
+                  <dt>外聘老師合計</dt>
+                  <dd id="teacherTotal">0 人</dd>
+                </div>
+                <div>
+                  <dt>教師鐘點堂數</dt>
+                  <dd id="classCount">0 堂</dd>
+                </div>
+                <div>
+                  <dt>訓練階段</dt>
+                  <dd id="periodTotal">0 段</dd>
+                </div>
+                <div>
+                  <dt>鐘點費總額</dt>
+                  <dd id="totalFee">$0</dd>
+                </div>
+                <div>
+                  <dt>學生需分攤總額</dt>
+                  <dd id="selfPayTotal">$0</dd>
+                </div>
+                <div class="emphasis">
+                  <dt>每生應繳</dt>
+                  <dd id="perStudent">$0</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="report-panel">
+              <div class="panel-heading">
+                <div>
+                  <p>階段 4</p>
+                  <h3>報表產出</h3>
+                </div>
+              </div>
+              <div class="report-actions">
+                <button id="downloadBudgetPdf" type="button">經費分攤 PDF</button>
+                <button id="downloadBudgetXlsx" type="button">Excel 365 報表</button>
+                <button id="downloadNoticeDocx" type="button">繳費通知單 Word</button>
+                <button id="downloadNoticePdf" type="button">繳費通知單 PDF</button>
+              </div>
+              <div class="notice-preview">
+                <p>繳費通知單預覽</p>
+                <h4 id="noticeTitle">弦樂 A 團暑訓繳費通知單</h4>
+                <p id="noticeBody">每生應繳 $0，請於期限前完成繳費。</p>
+              </div>
+            </section>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
