@@ -176,10 +176,24 @@
                   重要提醒
                   <textarea id="reminders" rows="4" placeholder="每一行會成為通知單中的一點提醒"></textarea>
                 </label>
-                <label class="wide-field">
-                  分部 / 地點 / 學生名單
-                  <textarea id="sectionRoster" rows="4" placeholder="格式：第一小提琴|大合奏教室|學生姓名"></textarea>
-                </label>
+                <div class="wide-field roster-editor">
+                  <div class="roster-heading">
+                    <div>
+                      <span>分部課程地點與學生</span>
+                      <small>會輸出到通知單第 4 段表格</small>
+                    </div>
+                    <button id="addSectionRowBtn" class="inline-action" type="button"><svg class="icon"><use href="#icon-plus"></use></svg>新增分部</button>
+                  </div>
+                  <div class="roster-table" aria-label="分部課程地點與學生設定">
+                    <div class="roster-head">
+                      <span>分部</span>
+                      <span>上課地點</span>
+                      <span>學生</span>
+                      <span></span>
+                    </div>
+                    <div id="sectionRosterRows"></div>
+                  </div>
+                </div>
               </div>
             </section>
 

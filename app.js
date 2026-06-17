@@ -35,6 +35,13 @@ const defaultRoster = [
   "大提琴、低音提琴|二樓團輔教室|",
 ].join("\n");
 
+const defaultSectionGroups = [
+  { part: "第一小提琴", location: "大合奏教室", students: "" },
+  { part: "第二小提琴", location: "弦 A 教室", students: "" },
+  { part: "第三小提琴", location: "弦 B 教室", students: "" },
+  { part: "大提琴、低音提琴", location: "二樓團輔教室", students: "" },
+];
+
 let scenarios = loadScenarios();
 let activeId = scenarios[0].id;
 let dirty = false;
@@ -72,6 +79,7 @@ function defaultScenario() {
     paymentNote: "請交予音樂班辦公室，或依學校公告方式完成繳費。",
     reminders: defaultReminders,
     sectionRoster: defaultRoster,
+    sectionGroups: structuredClone(defaultSectionGroups),
     googleClientId: localStorage.getItem("musicCampBudget.googleClientId") || "",
     updatedAt: new Date().toISOString(),
   };
@@ -157,8 +165,35 @@ function normalizeScenario(raw) {
     collectionMethod: raw.collectionMethod || base.collectionMethod,
     reminders: raw.reminders || base.reminders,
     sectionRoster: raw.sectionRoster || base.sectionRoster,
+    sectionGroups: normalizeSectionGroups(raw.sectionGroups, raw.sectionRoster || base.sectionRoster),
     googleClientId: raw.googleClientId || localStorage.getItem("musicCampBudget.googleClientId") || "",
   };
+}
+
+function normalizeSectionGroups(groups, fallbackRoster) {
+  if (Array.isArray(groups) && groups.length) {
+    return groups.map((group) => ({
+      id: group.id || crypto.randomUUID(),
+      part: group.part || group.section || "",
+      location: group.location || "",
+      students: group.students || "",
+    }));
+  }
+  const parsed = String(fallbackRoster || "")
+    .split(/\n+/)
+    .map((line) => line.split("|").map((item) => item.trim()))
+    .filter((row) => row.some(Boolean))
+    .map((row) => ({
+      id: crypto.randomUUID(),
+      part: row[0] || "",
+      location: row[1] || "",
+      students: row.slice(2).join("、") || "",
+    }));
+  return parsed.length ? parsed : structuredClone(defaultSectionGroups).map((group) => ({ ...group, id: crypto.randomUUID() }));
+}
+
+function serializeSectionGroups(groups) {
+  return groups.map((group) => `${group.part || ""}|${group.location || ""}|${group.students || ""}`).join("\n");
 }
 
 function getActive() {
@@ -179,7 +214,8 @@ function readForm() {
   scenario.noticeDate = $("noticeDate").value;
   scenario.collectionMethod = $("collectionMethod").value.trim();
   scenario.reminders = $("reminders").value.trim();
-  scenario.sectionRoster = $("sectionRoster").value.trim();
+  scenario.sectionGroups = readSectionGroupRows();
+  scenario.sectionRoster = serializeSectionGroups(scenario.sectionGroups);
   scenario.courses = courseTemplates.map((template) => ({
     key: template.key,
     label: template.label,
@@ -217,10 +253,10 @@ function writeForm(scenario) {
   $("collectionMethod").value = scenario.collectionMethod;
   $("paymentNote").value = scenario.paymentNote;
   $("reminders").value = scenario.reminders;
-  $("sectionRoster").value = scenario.sectionRoster;
   $("googleClientId").value = scenario.googleClientId || "";
   renderCourseRows(scenario);
   renderPeriodRows(scenario);
+  renderSectionGroupRows(scenario);
   updateCampTabs();
   updateDriveStatus();
   updateCalculations();
@@ -282,6 +318,31 @@ function renderPeriodRows(scenario) {
         </div>`,
     )
     .join("");
+}
+
+function renderSectionGroupRows(scenario) {
+  const groups = normalizeSectionGroups(scenario.sectionGroups, scenario.sectionRoster);
+  $("sectionRosterRows").innerHTML = groups
+    .map(
+      (group) => `
+        <div class="roster-row" data-id="${group.id || crypto.randomUUID()}">
+          <input data-field="part" type="text" value="${escapeHtml(group.part)}" aria-label="分部" placeholder="例：第一小提琴" />
+          <input data-field="location" type="text" value="${escapeHtml(group.location)}" aria-label="上課地點" placeholder="例：大合奏教室" />
+          <input data-field="students" type="text" value="${escapeHtml(group.students)}" aria-label="學生" placeholder="例：學生姓名、學生姓名" />
+          <button class="icon-action remove-section-row" type="button" aria-label="刪除此分部"><svg class="icon"><use href="#icon-trash"></use></svg></button>
+        </div>`,
+    )
+    .join("");
+}
+
+function readSectionGroupRows() {
+  const rows = [...document.querySelectorAll(".roster-row")].map((row) => ({
+    id: row.dataset.id || crypto.randomUUID(),
+    part: row.querySelector("[data-field='part']").value.trim(),
+    location: row.querySelector("[data-field='location']").value.trim(),
+    students: row.querySelector("[data-field='students']").value.trim(),
+  }));
+  return rows.filter((row) => row.part || row.location || row.students);
 }
 
 function updateCalculations() {
@@ -402,9 +463,10 @@ $("addPeriodBtn").addEventListener("click", () => {
 });
 
 $("periodRows").addEventListener("click", (event) => {
-  if (!event.target.classList.contains("remove-period")) return;
+  const button = event.target.closest(".remove-period");
+  if (!button) return;
   const scenario = readForm();
-  const id = event.target.closest(".period-row").dataset.id;
+  const id = button.closest(".period-row").dataset.id;
   scenario.periods = scenario.periods.filter((period) => period.id !== id);
   if (!scenario.periods.length) {
     scenario.periods.push({
@@ -418,6 +480,33 @@ $("periodRows").addEventListener("click", (event) => {
   }
   dirty = true;
   renderPeriodRows(scenario);
+  updateCalculations();
+});
+
+$("addSectionRowBtn").addEventListener("click", () => {
+  const scenario = readForm();
+  scenario.sectionGroups.push({
+    id: crypto.randomUUID(),
+    part: "",
+    location: "",
+    students: "",
+  });
+  dirty = true;
+  renderSectionGroupRows(scenario);
+  updateCalculations();
+});
+
+$("sectionRosterRows").addEventListener("click", (event) => {
+  const button = event.target.closest(".remove-section-row");
+  if (!button) return;
+  const scenario = readForm();
+  const id = button.closest(".roster-row").dataset.id;
+  scenario.sectionGroups = scenario.sectionGroups.filter((group) => group.id !== id);
+  if (!scenario.sectionGroups.length) {
+    scenario.sectionGroups.push({ id: crypto.randomUUID(), part: "", location: "", students: "" });
+  }
+  dirty = true;
+  renderSectionGroupRows(scenario);
   updateCalculations();
 });
 
@@ -505,11 +594,10 @@ function reminderLines(scenario) {
 }
 
 function rosterRows(scenario) {
-  return String(scenario.sectionRoster || "")
-    .split(/\n+/)
-    .map((line) => line.split("|").map((item) => item.trim()))
-    .filter((row) => row.some(Boolean))
-    .map((row) => [row[0] || "", row[1] || "", row.slice(2).join("、") || ""]);
+  const groups = normalizeSectionGroups(scenario.sectionGroups, scenario.sectionRoster);
+  return groups
+    .filter((group) => group.part || group.location || group.students)
+    .map((group) => [group.part || "", group.location || "", group.students || ""]);
 }
 
 function noticeDateText(scenario) {
@@ -527,15 +615,26 @@ function periodSummaryText(scenario) {
 }
 
 function sessionDaysText(scenario) {
-  return `${scenario.periods.length} 階段`;
+  const days = scenario.periods.reduce((sum, period) => sum + inclusiveDays(period.startDate, period.endDate), 0);
+  return days ? `共 ${days} 日` : `${scenario.periods.length} 階段`;
+}
+
+function inclusiveDays(startDate, endDate) {
+  if (!startDate || !endDate) return 0;
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
+  return Math.round((end - start) / 86400000) + 1;
 }
 
 function noticeSummaryRows(scenario, calc) {
+  const camp = campLabel(scenario);
   return [
     ["訓練對象", `${scenario.ensembleName}團員`, `${scenario.studentCount} 人`],
-    ["訓練日期", periodSummaryText(scenario), sessionDaysText(scenario)],
-    ["費用計算", `${money(calc.totalFee)} - ${money(calc.subsidy)} = ${money(calc.selfPayTotal)}`, `每生 ${money(calc.perStudent)}`],
-    ["繳費期限", dateText(scenario.paymentDue), scenario.collectionMethod || scenario.paymentNote || ""],
+    [`${camp}日期`, periodSummaryText(scenario), sessionDaysText(scenario)],
+    ["費用計算", `${camp}團練費用 ${money(calc.totalFee)} - 公費補助 ${money(calc.subsidy)} = ${money(calc.selfPayTotal)}`, `每生 ${money(calc.perStudent)}`],
+    ["繳費期限", dateText(scenario.paymentDue), scenario.paymentNote || "請交各班術導"],
+    ["收款方式", scenario.collectionMethod || "", "逾期請先告知"],
   ];
 }
 
@@ -544,6 +643,13 @@ function noticeScheduleRows(scenario) {
     period.name,
     `${dateText(period.startDate)} 至 ${dateText(period.endDate)}`,
     `分部 ${period.sectionalSessions} 節\n合奏 ${period.ensembleSessions} 節`,
+  ]);
+}
+
+function noticeScheduleDetailRows(scenario) {
+  return scenario.periods.flatMap((period) => [
+    [period.name, `${dateText(period.startDate)} 至 ${dateText(period.endDate)}\n09:00-12:00`, "分部課程", "各分部教室", "各分部老師"],
+    [period.name, `${dateText(period.startDate)} 至 ${dateText(period.endDate)}\n09:00-12:00`, "合奏課程", "二樓團輔教室", "指揮老師"],
   ]);
 }
 
@@ -609,11 +715,17 @@ function noticePreviewHtml(scenario, calc) {
         `<tr><td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1])}</td><td>${escapeHtml(row[2]).replaceAll("\n", "<br>")}</td></tr>`,
     )
     .join("");
+  const rosterHtml = rosterRows(scenario)
+    .map(
+      (row) =>
+        `<tr><td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1])}</td><td>${escapeHtml(row[2]).replaceAll("\n", "<br>")}</td></tr>`,
+    )
+    .join("");
   return `
     <div class="notice-doc">
       <div class="notice-doc-title">${escapeHtml(scenario.schoolName)}${escapeHtml(scenario.ensembleName)} ${escapeHtml(scenario.schoolYear)} 年${campLabel(scenario)}暨繳費通知單</div>
-      <div class="notice-doc-subtitle">敬請家長協助學生預留訓練時間，並於期限前完成繳費。</div>
-      <div class="notice-section-title">一、繳費與訓練重點</div>
+      <div class="notice-doc-subtitle">敬請家長協助學生預留${campLabel(scenario)}時間，並於期限前完成繳費。</div>
+      <div class="notice-section-title">一、繳費與${campLabel(scenario)}重點</div>
       <table class="notice-mini-table">
         <tr><th>項目</th><th>內容</th><th>提醒</th></tr>
         ${summaryRows}
@@ -622,6 +734,8 @@ function noticePreviewHtml(scenario, calc) {
       <div>${reminders.map((line) => `• ${escapeHtml(line)}`).join("<br>")}</div>
       <div class="notice-section-title">三、上課日期與課程安排</div>
       <table class="notice-mini-table"><tr><th>階段</th><th>日期</th><th>節數</th></tr>${scheduleRows}</table>
+      <div class="notice-section-title">四、分部課程地點與學生</div>
+      <table class="notice-mini-table"><tr><th>分部</th><th>上課地點</th><th>學生</th></tr>${rosterHtml}</table>
       <div class="notice-page">第 1 / 1 頁</div>
     </div>`;
 }
@@ -642,15 +756,16 @@ function createNoticePdf(scenario, calc) {
   const ctx = canvas.getContext("2d");
   setupPdfCanvas(ctx, width, height);
   let y = 92;
-  y = drawPdfTitle(ctx, `${scenario.schoolName}${scenario.ensembleName} ${scenario.schoolYear} 年${campLabel(scenario)}暨繳費通知單`, y);
+  const camp = campLabel(scenario);
+  y = drawPdfTitle(ctx, `${scenario.schoolName}${scenario.ensembleName} ${scenario.schoolYear} 年${camp}暨繳費通知單`, y);
   ctx.fillStyle = "#555555";
   ctx.font = '24px "Microsoft JhengHei", sans-serif';
-  drawCenteredText(ctx, "敬請家長協助學生預留訓練時間，並於期限前完成繳費。", width / 2, y + 8);
+  drawCenteredText(ctx, `敬請家長協助學生預留${camp}時間，並於期限前完成繳費。`, width / 2, y + 8);
   y += 72;
-  y = drawPdfSection(ctx, "一、繳費與訓練重點", y);
+  y = drawPdfSection(ctx, `一、繳費與${camp}重點`, y);
   y = drawCanvasTable(ctx, ["項目", "內容", "提醒"], noticeSummaryRows(scenario, calc), [180, 700, 220], 90, y, {
     headerFill: "#fff5de",
-    fontSize: 24,
+    fontSize: 21,
   });
   y = drawPdfSection(ctx, "二、重要提醒", y + 24);
   reminderLines(scenario).forEach((line) => {
@@ -662,9 +777,14 @@ function createNoticePdf(scenario, calc) {
     });
   });
   y = drawPdfSection(ctx, "三、上課日期與課程安排", y + 18);
-  y = drawCanvasTable(ctx, ["階段", "日期", "節數"], noticeScheduleRows(scenario), [180, 690, 230], 90, y, {
-    headerFill: "#fff5de",
-    fontSize: 24,
+  y = drawCanvasTable(ctx, ["階段", "日期與時間", "課程", "地點", "老師"], noticeScheduleDetailRows(scenario), [150, 330, 170, 260, 190], 90, y, {
+    headerFill: "#f2f4f7",
+    fontSize: 20,
+  });
+  y = drawPdfSection(ctx, "四、分部課程地點與學生", y + 14);
+  y = drawCanvasTable(ctx, ["分部", "上課地點", "學生"], rosterRows(scenario), [260, 270, 570], 90, y, {
+    headerFill: "#f2f4f7",
+    fontSize: 20,
   });
   drawPdfFooter(ctx, "繳費通知單", height);
   return imageDataToPdf(canvas.toDataURL("image/jpeg", 0.92), width, height);
@@ -874,25 +994,28 @@ function columnName(index) {
 function exportNoticeDocx() {
   const scenario = readForm();
   const calc = calculate(scenario);
+  const camp = campLabel(scenario);
   const body = [
-    wParagraph(`${scenario.schoolName}${scenario.ensembleName} ${scenario.schoolYear} 年${campLabel(scenario)}暨繳費通知單`, {
+    wParagraph(`${scenario.schoolName}${scenario.ensembleName} ${scenario.schoolYear} 年${camp}暨繳費通知單`, {
       size: 38,
       bold: true,
       align: "center",
       after: 40,
     }),
-    wParagraph("敬請家長協助學生預留訓練時間，並於期限前完成繳費。", {
+    wParagraph(`敬請家長協助學生預留${camp}時間，並於期限前完成繳費。`, {
       size: 22,
       align: "center",
       color: "555555",
       after: 100,
     }),
-    wHeading("一、繳費與訓練重點"),
-    wTable(["項目", "內容", "提醒"], noticeSummaryRows(scenario, calc), [1500, 6500, 1900], "FFF5DE"),
+    wHeading(`一、繳費與${camp}重點`),
+    wTable(["項目", "內容", "提醒"], noticeSummaryRows(scenario, calc), [1871, 5726, 2721], "FFF5DE"),
     wHeading("二、重要提醒"),
     ...reminderLines(scenario).map((line) => wParagraph(`• ${line}`, { size: 22, after: 30 })),
     wHeading("三、上課日期與課程安排"),
-    wTable(["階段", "日期", "節數"], noticeScheduleRows(scenario), [1500, 6500, 1900], "F2F4F7"),
+    wTable(["階段", "日期與時間", "課程", "地點", "老師"], noticeScheduleDetailRows(scenario), [1389, 3090, 1559, 2353, 1928], "F2F4F7"),
+    wHeading("四、分部課程地點與學生"),
+    wTable(["分部", "上課地點", "學生"], rosterRows(scenario), [2409, 2580, 5329], "F2F4F7"),
     wParagraph("敬祝  闔家平安", { size: 21, before: 80 }),
     wParagraph(`${scenario.organizerName || scenario.schoolName}  ${noticeDateText(scenario)}`, {
       size: 21,
