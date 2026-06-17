@@ -29,7 +29,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -238,60 +239,30 @@ h1 {
   font-size: 22px;
 }
 
-.stage-flow {
+.workflow-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
   margin: 20px 0;
-}
-
-.stage {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 82px;
-  padding: 16px;
-  color: #fffdf8;
+  padding: 6px;
+  border: 1px solid rgba(32, 35, 50, 0.08);
   border-radius: 8px;
+  background: rgba(255, 253, 248, 0.82);
 }
 
-.stage span {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+.workflow-tabs button {
+  min-height: 44px;
+  color: #4f5664;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
   font-weight: 800;
 }
 
-.stage h3 {
-  margin-bottom: 4px;
-  font-size: 17px;
-}
-
-.stage p {
-  margin-bottom: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  opacity: 0.86;
-}
-
-.stage-teachers {
+.workflow-tabs button.active {
+  color: #fffdf8;
   background: var(--teal);
-}
-
-.stage-schedule {
-  background: var(--lavender);
-}
-
-.stage-funding {
-  background: var(--wine);
-}
-
-.stage-reports {
-  background: var(--green);
+  box-shadow: 0 8px 18px rgba(35, 111, 115, 0.2);
 }
 
 .content-grid {
@@ -346,9 +317,22 @@ h1 {
   border-left: 8px solid var(--wine);
 }
 
+.basic-panel {
+  border-left: 8px solid var(--gold);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
 .teacher-grid,
 .schedule-grid,
-.funding-grid {
+.funding-grid,
+.basic-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
@@ -357,6 +341,14 @@ h1 {
 .schedule-grid,
 .funding-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.basic-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.wide-field {
+  grid-column: 1 / -1;
 }
 
 .schedule-grid {
@@ -482,9 +474,9 @@ label {
   font-weight: 700;
 }
 
-input {
+input,
+textarea {
   width: 100%;
-  min-height: 42px;
   padding: 9px 11px;
   color: var(--ink);
   border: 1px solid #d5cab9;
@@ -492,7 +484,18 @@ input {
   background: #fffdfa;
 }
 
-input:focus {
+input {
+  min-height: 42px;
+}
+
+textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+input:focus,
+textarea:focus {
   outline: 3px solid rgba(35, 111, 115, 0.16);
   border-color: var(--teal);
 }
@@ -607,6 +610,10 @@ input:focus {
   gap: 10px;
 }
 
+.report-actions-inline {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .report-actions button {
   min-height: 54px;
   padding: 8px 12px;
@@ -628,10 +635,11 @@ input:focus {
 
 .notice-preview {
   margin-top: 16px;
-  padding: 16px;
-  border: 1px dashed #cdbf9f;
+  padding: 18px;
+  border: 1px solid #d9d2c4;
   border-radius: 8px;
-  background: #fbf7ef;
+  background: #fffdf8;
+  box-shadow: inset 0 0 0 1px rgba(184, 135, 47, 0.08);
 }
 
 .notice-preview h4 {
@@ -639,10 +647,57 @@ input:focus {
   font-size: 18px;
 }
 
-.notice-preview p:last-child {
+.notice-preview div:last-child {
   margin-bottom: 0;
   color: #525965;
-  line-height: 1.65;
+  line-height: 1.55;
+}
+
+.notice-doc {
+  display: grid;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.notice-doc-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.notice-doc-subtitle {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.notice-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.notice-mini-table th,
+.notice-mini-table td {
+  padding: 6px;
+  border: 1px solid #d8d1c5;
+  vertical-align: middle;
+}
+
+.notice-mini-table th {
+  background: #fff5de;
+}
+
+.notice-section-title {
+  margin-top: 4px;
+  color: var(--teal);
+  font-weight: 900;
+}
+
+.notice-page {
+  color: var(--muted);
+  text-align: center;
+  font-size: 11px;
 }
 
 @media (max-width: 1120px) {
@@ -668,13 +723,15 @@ input:focus {
 
   .topbar,
   .content-grid,
-  .stage-flow,
+  .workflow-tabs,
   .teacher-grid,
   .schedule-grid,
   .funding-grid,
+  .basic-grid,
   .drive-grid,
   .totals-strip,
-  .report-actions {
+  .report-actions,
+  .report-actions-inline {
     grid-template-columns: 1fr;
   }
 

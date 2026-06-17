@@ -22,6 +22,19 @@ const courseTemplates = [
   { key: "ensemble", label: "合奏課程" },
 ];
 
+const defaultReminders = [
+  "請家長協助學生預留暑訓日期，並提醒學生準時出席、攜帶樂器與譜本。",
+  "暑訓及後續學習期間，若學生無法認真練習、未完成老師指定要求，或出席率不佳，經指揮老師評估後，可能調整回 B 團。",
+  "若因病、重要家庭因素或其他不可抗力無法出席，請事先向藝才組或指導老師請假。",
+].join("\n");
+
+const defaultRoster = [
+  "第一小提琴|大合奏教室|",
+  "第二小提琴|弦 A 教室|",
+  "第三小提琴|弦 B 教室|",
+  "大提琴、低音提琴|二樓團輔教室|",
+].join("\n");
+
 let scenarios = loadScenarios();
 let activeId = scenarios[0].id;
 let dirty = false;
@@ -32,6 +45,10 @@ function defaultScenario() {
   return {
     id: crypto.randomUUID(),
     name: "115年弦樂 A 團暑訓",
+    schoolName: "南屏國小",
+    ensembleName: "弦樂 A 團",
+    schoolYear: "115",
+    organizerName: "南屏國小藝才組",
     campType: "summer",
     courses: [
       { key: "sectional", label: "分部課", teachers: 6, rate: 1000 },
@@ -50,7 +67,11 @@ function defaultScenario() {
     studentCount: 48,
     publicSubsidy: 70000,
     paymentDue: isoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14)),
+    noticeDate: isoDate(today),
+    collectionMethod: "各班術導彙整後，統一繳交至藝才組",
     paymentNote: "請交予音樂班辦公室，或依學校公告方式完成繳費。",
+    reminders: defaultReminders,
+    sectionRoster: defaultRoster,
     googleClientId: localStorage.getItem("musicCampBudget.googleClientId") || "",
     updatedAt: new Date().toISOString(),
   };
@@ -128,6 +149,14 @@ function normalizeScenario(raw) {
     periods,
     studentCount: Math.max(1, Number(raw.studentCount ?? base.studentCount) || 1),
     publicSubsidy: Number(raw.publicSubsidy ?? base.publicSubsidy) || 0,
+    schoolName: raw.schoolName || base.schoolName,
+    ensembleName: raw.ensembleName || base.ensembleName,
+    schoolYear: raw.schoolYear || base.schoolYear,
+    organizerName: raw.organizerName || base.organizerName,
+    noticeDate: raw.noticeDate || base.noticeDate,
+    collectionMethod: raw.collectionMethod || base.collectionMethod,
+    reminders: raw.reminders || base.reminders,
+    sectionRoster: raw.sectionRoster || base.sectionRoster,
     googleClientId: raw.googleClientId || localStorage.getItem("musicCampBudget.googleClientId") || "",
   };
 }
@@ -143,6 +172,14 @@ function numberFrom(value, minimum = 0) {
 function readForm() {
   const scenario = getActive();
   scenario.name = $("scenarioName").value.trim() || "未命名情境";
+  scenario.schoolName = $("schoolName").value.trim() || "未設定學校";
+  scenario.ensembleName = $("ensembleName").value.trim() || "未設定團隊";
+  scenario.schoolYear = $("schoolYear").value.trim() || "";
+  scenario.organizerName = $("organizerName").value.trim() || "";
+  scenario.noticeDate = $("noticeDate").value;
+  scenario.collectionMethod = $("collectionMethod").value.trim();
+  scenario.reminders = $("reminders").value.trim();
+  scenario.sectionRoster = $("sectionRoster").value.trim();
   scenario.courses = courseTemplates.map((template) => ({
     key: template.key,
     label: template.label,
@@ -168,11 +205,19 @@ function readForm() {
 }
 
 function writeForm(scenario) {
+  $("schoolName").value = scenario.schoolName;
+  $("ensembleName").value = scenario.ensembleName;
+  $("schoolYear").value = scenario.schoolYear;
+  $("organizerName").value = scenario.organizerName;
+  $("noticeDate").value = scenario.noticeDate;
   $("scenarioName").value = scenario.name;
   $("studentCount").value = scenario.studentCount;
   $("publicSubsidy").value = scenario.publicSubsidy;
   $("paymentDue").value = scenario.paymentDue;
+  $("collectionMethod").value = scenario.collectionMethod;
   $("paymentNote").value = scenario.paymentNote;
+  $("reminders").value = scenario.reminders;
+  $("sectionRoster").value = scenario.sectionRoster;
   $("googleClientId").value = scenario.googleClientId || "";
   renderCourseRows(scenario);
   renderPeriodRows(scenario);
@@ -254,10 +299,8 @@ function updateCalculations() {
   $("selfPayTotal").textContent = money(calc.selfPayTotal);
   $("perStudent").textContent = money(calc.perStudent);
   $("dateRangeText").textContent = periodRangeText(scenario);
-  $("noticeTitle").textContent = `弦樂 A 團${campLabel(scenario)}繳費通知單`;
-  $("noticeBody").textContent = `每生應繳 ${money(calc.perStudent)}，請於 ${dateText(
-    scenario.paymentDue,
-  )} 前完成繳費。${scenario.paymentNote}`;
+  $("noticeTitle").textContent = `${scenario.ensembleName}${campLabel(scenario)}繳費通知單`;
+  $("noticeBody").innerHTML = noticePreviewHtml(scenario, calc);
   $("scenarioBadge").textContent = dirty ? "未儲存" : "已儲存";
   renderScenarioList();
 }
@@ -330,6 +373,16 @@ document.querySelectorAll("[data-camp]").forEach((button) => {
     dirty = true;
     updateCampTabs();
     updateCalculations();
+  });
+});
+
+document.querySelectorAll("[data-tab]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const tab = button.dataset.tab;
+    document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
+    document.querySelectorAll("[data-panel]").forEach((panel) => {
+      panel.classList.toggle("active", panel.dataset.panel === tab);
+    });
   });
 });
 
@@ -444,13 +497,74 @@ function reportRows(scenario = readForm()) {
   ];
 }
 
+function reminderLines(scenario) {
+  return String(scenario.reminders || "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function rosterRows(scenario) {
+  return String(scenario.sectionRoster || "")
+    .split(/\n+/)
+    .map((line) => line.split("|").map((item) => item.trim()))
+    .filter((row) => row.some(Boolean))
+    .map((row) => [row[0] || "", row[1] || "", row.slice(2).join("、") || ""]);
+}
+
+function noticeDateText(scenario) {
+  if (!scenario.noticeDate) return "";
+  const [year, month, day] = scenario.noticeDate.split("-").map(Number);
+  if (!year) return dateText(scenario.noticeDate);
+  const roc = year - 1911;
+  return `${roc}.${pad2(month)}.${pad2(day)}`;
+}
+
+function periodSummaryText(scenario) {
+  return scenario.periods
+    .map((period) => `${period.name}：${dateText(period.startDate)} 至 ${dateText(period.endDate)}`)
+    .join("\n");
+}
+
+function sessionDaysText(scenario) {
+  return `${scenario.periods.length} 階段`;
+}
+
+function noticePreviewHtml(scenario, calc) {
+  const reminders = reminderLines(scenario).slice(0, 3);
+  const scheduleRows = scenario.periods
+    .map(
+      (period) =>
+        `<tr><td>${escapeHtml(period.name)}</td><td>${dateText(period.startDate)} 至 ${dateText(period.endDate)}</td><td>分部 ${period.sectionalSessions} 節<br>合奏 ${period.ensembleSessions} 節</td></tr>`,
+    )
+    .join("");
+  return `
+    <div class="notice-doc">
+      <div class="notice-doc-title">${escapeHtml(scenario.schoolName)}${escapeHtml(scenario.ensembleName)} ${escapeHtml(scenario.schoolYear)} 年${campLabel(scenario)}暨繳費通知單</div>
+      <div class="notice-doc-subtitle">敬請家長協助學生預留訓練時間，並於期限前完成繳費。</div>
+      <div class="notice-section-title">一、繳費與訓練重點</div>
+      <table class="notice-mini-table">
+        <tr><th>項目</th><th>內容</th><th>提醒</th></tr>
+        <tr><td>訓練對象</td><td>${escapeHtml(scenario.ensembleName)}團員</td><td>${scenario.studentCount} 人</td></tr>
+        <tr><td>訓練日期</td><td>${escapeHtml(periodSummaryText(scenario)).replaceAll("\n", "<br>")}</td><td>${sessionDaysText(scenario)}</td></tr>
+        <tr><td>費用計算</td><td>${money(calc.totalFee)} - ${money(calc.subsidy)} = ${money(calc.selfPayTotal)}</td><td>每生 ${money(calc.perStudent)}</td></tr>
+        <tr><td>繳費期限</td><td>${dateText(scenario.paymentDue)}</td><td>${escapeHtml(scenario.collectionMethod || scenario.paymentNote)}</td></tr>
+      </table>
+      <div class="notice-section-title">二、重要提醒</div>
+      <div>${reminders.map((line) => `• ${escapeHtml(line)}`).join("<br>")}</div>
+      <div class="notice-section-title">三、上課日期與課程安排</div>
+      <table class="notice-mini-table"><tr><th>階段</th><th>日期</th><th>節數</th></tr>${scheduleRows}</table>
+      <div class="notice-page">第 1 / 1 頁</div>
+    </div>`;
+}
+
 function exportPdf(type) {
   const scenario = readForm();
   const calc = calculate(scenario);
   const lines =
     type === "notice"
       ? [
-          `弦樂 A 團${campLabel(scenario)}繳費通知單`,
+          `${scenario.schoolName}${scenario.ensembleName}${campLabel(scenario)}繳費通知單`,
           "",
           "親愛的家長您好：",
           `本次${campLabel(scenario)}分為 ${scenario.periods.length} 個上課階段，總期程為 ${periodRangeText(
@@ -459,7 +573,8 @@ function exportPdf(type) {
           "",
           `每生應繳：${money(calc.perStudent)}`,
           `繳費期限：${dateText(scenario.paymentDue)}`,
-          `備註：${scenario.paymentNote || "無"}`,
+          `收款方式：${scenario.collectionMethod || scenario.paymentNote || "無"}`,
+          ...reminderLines(scenario).map((line) => `提醒：${line}`),
         ]
       : [`${scenario.name} 經費分攤報表`, "", ...reportRows(scenario).map((r) => `${r[0]}：${r[1]}`)];
   const blob = createCanvasPdf(lines, type === "notice" ? "繳費通知單" : "經費分攤報表");
@@ -586,30 +701,112 @@ function exportXlsx() {
 function exportNoticeDocx() {
   const scenario = readForm();
   const calc = calculate(scenario);
-  const paragraphs = [
-    `弦樂 A 團${campLabel(scenario)}繳費通知單`,
-    "親愛的家長您好：",
-    `本次${campLabel(scenario)}分為 ${scenario.periods.length} 個上課階段，總期程為 ${periodRangeText(
-      scenario,
-    )}。外聘師資鐘點費扣除公費補助後，由弦樂 A 團學生平均分攤。`,
-    `每生應繳：${money(calc.perStudent)}`,
-    `繳費期限：${dateText(scenario.paymentDue)}`,
-    `備註：${scenario.paymentNote || "無"}`,
+  const summaryRows = [
+    ["訓練對象", `${scenario.ensembleName}團員`, `${scenario.studentCount} 人`],
+    ["訓練日期", periodSummaryText(scenario), sessionDaysText(scenario)],
+    ["費用計算", `${money(calc.totalFee)} - ${money(calc.subsidy)} = ${money(calc.selfPayTotal)}`, `每生 ${money(calc.perStudent)}`],
+    ["繳費期限", dateText(scenario.paymentDue), scenario.collectionMethod || scenario.paymentNote || ""],
   ];
-  const body = paragraphs
-    .map(
-      (p) =>
-        `<w:p><w:r><w:rPr><w:rFonts w:eastAsia="Microsoft JhengHei"/></w:rPr><w:t>${xml(p)}</w:t></w:r></w:p>`,
-    )
-    .join("");
+  const scheduleRows = scenario.periods.flatMap((period) => [
+    [period.name, `${dateText(period.startDate)} 至 ${dateText(period.endDate)}`, "分部課程", "各分部教室", "各分部老師"],
+    [period.name, `${dateText(period.startDate)} 至 ${dateText(period.endDate)}`, "合奏課程", "二樓團輔教室", "指揮老師"],
+  ]);
+  const body = [
+    wParagraph(`${scenario.schoolName}${scenario.ensembleName} ${scenario.schoolYear} 年${campLabel(scenario)}暨繳費通知單`, {
+      size: 38,
+      bold: true,
+      align: "center",
+      after: 40,
+    }),
+    wParagraph("敬請家長協助學生預留訓練時間，並於期限前完成繳費。", {
+      size: 22,
+      align: "center",
+      color: "555555",
+      after: 100,
+    }),
+    wHeading("一、繳費與訓練重點"),
+    wTable(["項目", "內容", "提醒"], summaryRows, [1500, 6500, 1900], "FFF5DE"),
+    wHeading("二、重要提醒"),
+    ...reminderLines(scenario).map((line) => wParagraph(`• ${line}`, { size: 22, after: 30 })),
+    wHeading("三、上課日期與課程安排"),
+    wTable(["階段", "日期", "課程", "地點", "老師"], scheduleRows, [1300, 3100, 1500, 2100, 1900], "F2F4F7"),
+    wHeading("四、分部課程地點與學生"),
+    wTable(["分部", "上課地點", "學生"], rosterRows(scenario), [2400, 2500, 7000], "F2F4F7"),
+    wParagraph("敬祝  闔家平安", { size: 21, before: 80 }),
+    wParagraph(`${scenario.organizerName || scenario.schoolName}  ${noticeDateText(scenario)}`, {
+      size: 21,
+      bold: true,
+      align: "right",
+    }),
+  ].join("");
   downloadBlob(
     zipFiles({
       "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`,
       "_rels/.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`,
-      "word/document.xml": `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>`,
+      "word/_rels/document.xml.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>`,
+      "word/footer1.xml": `<?xml version="1.0" encoding="UTF-8"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${wFooterParagraph()}</w:ftr>`,
+      "word/document.xml": `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}<w:sectPr><w:footerReference w:type="default" r:id="rIdFooter1"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:footer="360"/></w:sectPr></w:body></w:document>`,
     }),
     `${scenario.name}-繳費通知單.docx`,
   );
+}
+
+function wParagraph(text, options = {}) {
+  const align = options.align ? `<w:jc w:val="${options.align}"/>` : "";
+  const spacing = `<w:spacing w:before="${options.before || 0}" w:after="${options.after ?? 60}"/>`;
+  const runProps = `<w:rPr><w:rFonts w:eastAsia="Microsoft JhengHei" w:ascii="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/>${
+    options.bold ? "<w:b/>" : ""
+  }<w:color w:val="${options.color || "202332"}"/><w:sz w:val="${options.size || 22}"/></w:rPr>`;
+  return `<w:p><w:pPr>${spacing}${align}</w:pPr>${wRuns(text, runProps)}</w:p>`;
+}
+
+function wHeading(text) {
+  return wParagraph(text, { size: 28, bold: true, color: "236F73", before: 110, after: 45 });
+}
+
+function wFooterParagraph() {
+  const props =
+    '<w:rPr><w:rFonts w:eastAsia="Microsoft JhengHei" w:ascii="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:color w:val="555555"/><w:sz w:val="19"/></w:rPr>';
+  return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>${props}<w:t>第 </w:t></w:r>${wField(
+    "PAGE",
+    "1",
+    props,
+  )}<w:r>${props}<w:t> / </w:t></w:r>${wField("NUMPAGES", "1", props)}<w:r>${props}<w:t> 頁</w:t></w:r></w:p>`;
+}
+
+function wField(instruction, fallback, props) {
+  return `<w:r>${props}<w:fldChar w:fldCharType="begin"/></w:r><w:r>${props}<w:instrText xml:space="preserve">${instruction}</w:instrText></w:r><w:r>${props}<w:fldChar w:fldCharType="separate"/></w:r><w:r>${props}<w:t>${fallback}</w:t></w:r><w:r>${props}<w:fldChar w:fldCharType="end"/></w:r>`;
+}
+
+function wRuns(text, runProps) {
+  return String(text)
+    .split("\n")
+    .map((part, index) => `${index ? "<w:r><w:br/></w:r>" : ""}<w:r>${runProps}<w:t>${xml(part)}</w:t></w:r>`)
+    .join("");
+}
+
+function wTable(headers, rows, widths, fill) {
+  const grid = widths.map((width) => `<w:gridCol w:w="${width}"/>`).join("");
+  const header = wRow(headers, widths, true, fill);
+  const body = rows.map((row) => wRow(row, widths, false)).join("");
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0);
+  return `<w:tbl><w:tblPr><w:tblW w:w="${totalWidth}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="70" w:type="dxa"/><w:start w:w="135" w:type="dxa"/><w:bottom w:w="70" w:type="dxa"/><w:end w:w="135" w:type="dxa"/></w:tblCellMar><w:tblBorders><w:top w:val="single" w:sz="6" w:color="DADCE0"/><w:left w:val="single" w:sz="6" w:color="DADCE0"/><w:bottom w:val="single" w:sz="6" w:color="DADCE0"/><w:right w:val="single" w:sz="6" w:color="DADCE0"/><w:insideH w:val="single" w:sz="6" w:color="DADCE0"/><w:insideV w:val="single" w:sz="6" w:color="DADCE0"/></w:tblBorders></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${header}${body}</w:tbl>`;
+}
+
+function wRow(cells, widths, header = false, fill = "") {
+  const tcs = cells
+    .map((cell, index) => {
+      const shade = header && fill ? `<w:shd w:fill="${fill}"/>` : "";
+      const align = index < 3 ? "center" : "left";
+      return `<w:tc><w:tcPr><w:tcW w:w="${widths[index]}" w:type="dxa"/>${shade}</w:tcPr>${wParagraph(cell, {
+        size: header ? 23 : 22,
+        bold: header,
+        align,
+        after: 0,
+      })}</w:tc>`;
+    })
+    .join("");
+  return `<w:tr><w:trPr><w:cantSplit/></w:trPr>${tcs}</w:tr>`;
 }
 
 async function connectDrive() {

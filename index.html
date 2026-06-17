@@ -61,43 +61,67 @@
           </div>
         </header>
 
-        <section class="stage-flow" aria-label="資料輸入階段">
-          <article class="stage stage-teachers">
-            <span>1</span>
-            <div>
-              <h3>師資設定</h3>
-              <p>分部課、合奏課程與堂課單價</p>
-            </div>
-          </article>
-          <article class="stage stage-schedule">
-            <span>2</span>
-            <div>
-              <h3>課程期程</h3>
-              <p>寒訓、暑訓多階段區間與節數</p>
-            </div>
-          </article>
-          <article class="stage stage-funding">
-            <span>3</span>
-            <div>
-              <h3>經費分攤</h3>
-              <p>公費補助與弦樂 A 團平均分攤</p>
-            </div>
-          </article>
-          <article class="stage stage-reports">
-            <span>4</span>
-            <div>
-              <h3>報表輸出</h3>
-              <p>PDF、Excel 365、Word 繳費通知單</p>
-            </div>
-          </article>
-        </section>
+        <nav class="workflow-tabs" aria-label="設定流程">
+          <button class="active" type="button" data-tab="basic">基本資料</button>
+          <button type="button" data-tab="course">課程與師資</button>
+          <button type="button" data-tab="funding">經費分攤</button>
+          <button type="button" data-tab="reports">通知單報表</button>
+          <button type="button" data-tab="cloud">雲端備份</button>
+        </nav>
 
         <section class="content-grid">
           <div class="input-stack">
-            <section class="panel teachers-panel">
+            <section class="panel basic-panel tab-panel active" data-panel="basic">
               <div class="panel-heading">
                 <div>
-                  <p>階段 1</p>
+                  <p>基本資料</p>
+                  <h3>通知單固定資訊</h3>
+                </div>
+              </div>
+              <div class="basic-grid">
+                <label>
+                  學校名稱
+                  <input id="schoolName" type="text" />
+                </label>
+                <label>
+                  團隊名稱
+                  <input id="ensembleName" type="text" />
+                </label>
+                <label>
+                  學年度
+                  <input id="schoolYear" type="text" />
+                </label>
+                <label>
+                  承辦單位
+                  <input id="organizerName" type="text" />
+                </label>
+                <label>
+                  通知日期
+                  <input id="noticeDate" type="date" />
+                </label>
+                <label>
+                  繳費期限
+                  <input id="paymentDue" type="date" />
+                </label>
+                <label class="wide-field">
+                  收款方式
+                  <input id="collectionMethod" type="text" />
+                </label>
+                <label class="wide-field">
+                  重要提醒
+                  <textarea id="reminders" rows="4"></textarea>
+                </label>
+                <label class="wide-field">
+                  分部 / 地點 / 學生名單
+                  <textarea id="sectionRoster" rows="4"></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel teachers-panel tab-panel" data-panel="course">
+              <div class="panel-heading">
+                <div>
+                  <p>課程與師資</p>
                   <h3>外聘老師與鐘點費</h3>
                 </div>
               </div>
@@ -113,10 +137,10 @@
               </div>
             </section>
 
-            <section class="panel schedule-panel">
+            <section class="panel schedule-panel tab-panel" data-panel="course">
               <div class="panel-heading">
                 <div>
-                  <p>階段 2</p>
+                  <p>課程與師資</p>
                   <h3>寒訓 / 暑訓期程</h3>
                 </div>
                 <div class="segmented" role="tablist" aria-label="訓練類型">
@@ -148,10 +172,10 @@
               </div>
             </section>
 
-            <section class="panel funding-panel">
+            <section class="panel funding-panel tab-panel" data-panel="funding">
               <div class="panel-heading">
                 <div>
-                  <p>階段 3</p>
+                  <p>經費分攤</p>
                   <h3>公費補助與學生分攤</h3>
                 </div>
               </div>
@@ -165,17 +189,28 @@
                   <input id="publicSubsidy" type="number" min="0" step="100" />
                 </label>
                 <label>
-                  繳費期限
-                  <input id="paymentDue" type="date" />
-                </label>
-                <label>
-                  收款備註
+                  繳費備註
                   <input id="paymentNote" type="text" />
                 </label>
               </div>
             </section>
 
-            <section class="panel drive-panel">
+            <section class="panel report-panel tab-panel" data-panel="reports">
+              <div class="panel-heading">
+                <div>
+                  <p>通知單報表</p>
+                  <h3>輸出版型與檔案</h3>
+                </div>
+              </div>
+              <div class="report-actions report-actions-inline">
+                <button id="downloadBudgetPdf" type="button">經費分攤 PDF</button>
+                <button id="downloadBudgetXlsx" type="button">Excel 365 報表</button>
+                <button id="downloadNoticeDocx" type="button">繳費通知單 Word</button>
+                <button id="downloadNoticePdf" type="button">繳費通知單 PDF</button>
+              </div>
+            </section>
+
+            <section class="panel drive-panel tab-panel" data-panel="cloud">
               <div class="panel-heading">
                 <div>
                   <p>雲端備份</p>
@@ -240,16 +275,10 @@
                   <h3>報表產出</h3>
                 </div>
               </div>
-              <div class="report-actions">
-                <button id="downloadBudgetPdf" type="button">經費分攤 PDF</button>
-                <button id="downloadBudgetXlsx" type="button">Excel 365 報表</button>
-                <button id="downloadNoticeDocx" type="button">繳費通知單 Word</button>
-                <button id="downloadNoticePdf" type="button">繳費通知單 PDF</button>
-              </div>
               <div class="notice-preview">
                 <p>繳費通知單預覽</p>
                 <h4 id="noticeTitle">弦樂 A 團暑訓繳費通知單</h4>
-                <p id="noticeBody">每生應繳 $0，請於期限前完成繳費。</p>
+                <div id="noticeBody">每生應繳 $0，請於期限前完成繳費。</div>
               </div>
             </section>
           </aside>
