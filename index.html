@@ -8,6 +8,66 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="icon-save" viewBox="0 0 24 24">
+        <path d="M5 4h12l2 2v14H5z" />
+        <path d="M8 4v6h8V4M8 20v-6h8v6" />
+      </symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24">
+        <path d="M8 8h11v12H8z" />
+        <path d="M5 16H4V4h12v1" />
+      </symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24">
+        <path d="M12 4v10" />
+        <path d="m7 10 5 5 5-5" />
+        <path d="M5 20h14" />
+      </symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24">
+        <path d="M12 20V10" />
+        <path d="m7 14 5-5 5 5" />
+        <path d="M5 4h14" />
+      </symbol>
+      <symbol id="icon-cloud" viewBox="0 0 24 24">
+        <path d="M7 18h10a4 4 0 0 0 .4-8 6 6 0 0 0-11.2 2A3 3 0 0 0 7 18z" />
+      </symbol>
+      <symbol id="icon-school" viewBox="0 0 24 24">
+        <path d="M4 10 12 5l8 5-8 5z" />
+        <path d="M7 12v5c2.8 2 7.2 2 10 0v-5" />
+      </symbol>
+      <symbol id="icon-music" viewBox="0 0 24 24">
+        <path d="M9 18V6l10-2v12" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="16" cy="16" r="3" />
+      </symbol>
+      <symbol id="icon-scale" viewBox="0 0 24 24">
+        <path d="M12 4v16M5 7h14" />
+        <path d="M7 7 4 13h6zM17 7l-3 6h6z" />
+      </symbol>
+      <symbol id="icon-file" viewBox="0 0 24 24">
+        <path d="M6 3h8l4 4v14H6z" />
+        <path d="M14 3v5h5M9 13h6M9 17h6" />
+      </symbol>
+      <symbol id="icon-pdf" viewBox="0 0 24 24">
+        <path d="M6 3h8l4 4v14H6z" />
+        <path d="M14 3v5h5" />
+        <path d="M8 16h8" />
+      </symbol>
+      <symbol id="icon-sheet" viewBox="0 0 24 24">
+        <path d="M5 4h14v16H5z" />
+        <path d="M5 9h14M10 4v16" />
+      </symbol>
+      <symbol id="icon-word" viewBox="0 0 24 24">
+        <path d="M6 3h8l4 4v14H6z" />
+        <path d="M14 3v5h5" />
+        <path d="m8 13 1.5 5 2-5 2 5 1.5-5" />
+      </symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24">
+        <path d="M5 7h14M9 7V5h6v2M8 10v9M12 10v9M16 10v9" />
+      </symbol>
+    </svg>
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand-mark" aria-hidden="true">
@@ -20,22 +80,26 @@
           <h1>音樂班寒暑訓經費規劃</h1>
         </div>
 
-        <button id="newScenarioBtn" class="primary-action" type="button">新增情境</button>
+        <button id="newScenarioBtn" class="primary-action" type="button">
+          <svg class="icon"><use href="#icon-plus"></use></svg>
+          新增情境
+        </button>
 
         <div class="scenario-list" id="scenarioList" aria-label="已儲存情境"></div>
 
         <div class="storage-panel">
           <p id="saveStatus">尚未儲存</p>
-          <button id="saveScenarioBtn" type="button">儲存目前資料</button>
-          <button id="duplicateScenarioBtn" type="button">複製情境</button>
-          <button id="exportJsonBtn" type="button">匯出備份</button>
+          <button id="saveScenarioBtn" type="button"><svg class="icon"><use href="#icon-save"></use></svg>儲存目前資料</button>
+          <button id="duplicateScenarioBtn" type="button"><svg class="icon"><use href="#icon-copy"></use></svg>複製情境</button>
+          <button id="exportJsonBtn" type="button"><svg class="icon"><use href="#icon-download"></use></svg>匯出備份</button>
           <label class="file-import">
+            <svg class="icon"><use href="#icon-upload"></use></svg>
             匯入備份
             <input id="importJsonInput" type="file" accept="application/json" />
           </label>
-          <button id="connectDriveBtn" type="button">連接 Google Drive</button>
-          <button id="uploadDriveBtn" type="button">備份到雲端</button>
-          <button id="loadDriveBtn" type="button">讀取雲端備份</button>
+          <button id="connectDriveBtn" type="button"><svg class="icon"><use href="#icon-cloud"></use></svg>連接 Google Drive</button>
+          <button id="uploadDriveBtn" type="button"><svg class="icon"><use href="#icon-upload"></use></svg>備份到雲端</button>
+          <button id="loadDriveBtn" type="button"><svg class="icon"><use href="#icon-download"></use></svg>讀取雲端備份</button>
         </div>
       </aside>
 
@@ -62,18 +126,19 @@
         </header>
 
         <nav class="workflow-tabs" aria-label="設定流程">
-          <button class="active" type="button" data-tab="basic">基本資料</button>
-          <button type="button" data-tab="course">課程與師資</button>
-          <button type="button" data-tab="funding">經費分攤</button>
-          <button type="button" data-tab="reports">通知單報表</button>
-          <button type="button" data-tab="cloud">雲端備份</button>
+          <button class="active" type="button" data-tab="basic"><svg class="icon"><use href="#icon-school"></use></svg>基本資料</button>
+          <button type="button" data-tab="course"><svg class="icon"><use href="#icon-music"></use></svg>課程與師資</button>
+          <button type="button" data-tab="funding"><svg class="icon"><use href="#icon-scale"></use></svg>經費分攤</button>
+          <button type="button" data-tab="reports"><svg class="icon"><use href="#icon-file"></use></svg>通知單報表</button>
+          <button type="button" data-tab="cloud"><svg class="icon"><use href="#icon-cloud"></use></svg>雲端備份</button>
         </nav>
 
         <section class="content-grid">
           <div class="input-stack">
             <section class="panel basic-panel tab-panel active" data-panel="basic">
               <div class="panel-heading">
-                <div>
+                <div class="heading-copy">
+                  <span class="section-icon"><svg class="icon"><use href="#icon-school"></use></svg></span>
                   <p>基本資料</p>
                   <h3>通知單固定資訊</h3>
                 </div>
@@ -105,22 +170,23 @@
                 </label>
                 <label class="wide-field">
                   收款方式
-                  <input id="collectionMethod" type="text" />
+                  <input id="collectionMethod" type="text" placeholder="例：各班術導彙整後，統一繳交至藝才組" />
                 </label>
                 <label class="wide-field">
                   重要提醒
-                  <textarea id="reminders" rows="4"></textarea>
+                  <textarea id="reminders" rows="4" placeholder="每一行會成為通知單中的一點提醒"></textarea>
                 </label>
                 <label class="wide-field">
                   分部 / 地點 / 學生名單
-                  <textarea id="sectionRoster" rows="4"></textarea>
+                  <textarea id="sectionRoster" rows="4" placeholder="格式：第一小提琴|大合奏教室|學生姓名"></textarea>
                 </label>
               </div>
             </section>
 
             <section class="panel teachers-panel tab-panel" data-panel="course">
               <div class="panel-heading">
-                <div>
+                <div class="heading-copy">
+                  <span class="section-icon"><svg class="icon"><use href="#icon-music"></use></svg></span>
                   <p>課程與師資</p>
                   <h3>外聘老師與鐘點費</h3>
                 </div>
@@ -139,7 +205,8 @@
 
             <section class="panel schedule-panel tab-panel" data-panel="course">
               <div class="panel-heading">
-                <div>
+                <div class="heading-copy">
+                  <span class="section-icon"><svg class="icon"><use href="#icon-music"></use></svg></span>
                   <p>課程與師資</p>
                   <h3>寒訓 / 暑訓期程</h3>
                 </div>
@@ -157,7 +224,7 @@
                   <span>總期程</span>
                   <strong id="dateRangeText">未設定</strong>
                 </div>
-                <button id="addPeriodBtn" class="inline-action" type="button">新增階段</button>
+                <button id="addPeriodBtn" class="inline-action" type="button"><svg class="icon"><use href="#icon-plus"></use></svg>新增階段</button>
               </div>
               <div class="period-table" aria-label="多階段上課區間">
                 <div class="period-head">
@@ -174,7 +241,8 @@
 
             <section class="panel funding-panel tab-panel" data-panel="funding">
               <div class="panel-heading">
-                <div>
+                <div class="heading-copy">
+                  <span class="section-icon"><svg class="icon"><use href="#icon-scale"></use></svg></span>
                   <p>經費分攤</p>
                   <h3>公費補助與學生分攤</h3>
                 </div>
@@ -197,22 +265,24 @@
 
             <section class="panel report-panel tab-panel" data-panel="reports">
               <div class="panel-heading">
-                <div>
+                <div class="heading-copy">
+                  <span class="section-icon"><svg class="icon"><use href="#icon-file"></use></svg></span>
                   <p>通知單報表</p>
                   <h3>輸出版型與檔案</h3>
                 </div>
               </div>
               <div class="report-actions report-actions-inline">
-                <button id="downloadBudgetPdf" type="button">經費分攤 PDF</button>
-                <button id="downloadBudgetXlsx" type="button">Excel 365 報表</button>
-                <button id="downloadNoticeDocx" type="button">繳費通知單 Word</button>
-                <button id="downloadNoticePdf" type="button">繳費通知單 PDF</button>
+                <button id="downloadBudgetPdf" type="button"><svg class="icon"><use href="#icon-pdf"></use></svg>經費分攤 PDF</button>
+                <button id="downloadBudgetXlsx" type="button"><svg class="icon"><use href="#icon-sheet"></use></svg>Excel 365 報表</button>
+                <button id="downloadNoticeDocx" type="button"><svg class="icon"><use href="#icon-word"></use></svg>繳費通知單 Word</button>
+                <button id="downloadNoticePdf" type="button"><svg class="icon"><use href="#icon-pdf"></use></svg>繳費通知單 PDF</button>
               </div>
             </section>
 
             <section class="panel drive-panel tab-panel" data-panel="cloud">
               <div class="panel-heading">
-                <div>
+                <div class="heading-copy">
+                  <span class="section-icon"><svg class="icon"><use href="#icon-cloud"></use></svg></span>
                   <p>雲端備份</p>
                   <h3>Google Drive 連線設定</h3>
                 </div>
@@ -234,7 +304,8 @@
             <section class="summary-board">
               <div class="staff-lines" aria-hidden="true"></div>
               <div class="summary-heading">
-                <div>
+                <div class="heading-copy">
+                  <span class="section-icon"><svg class="icon"><use href="#icon-scale"></use></svg></span>
                   <p>即時計算</p>
                   <h3 id="summaryTitle">暑訓經費分攤</h3>
                 </div>
@@ -270,7 +341,8 @@
 
             <section class="report-panel">
               <div class="panel-heading">
-                <div>
+                <div class="heading-copy">
+                  <span class="section-icon"><svg class="icon"><use href="#icon-file"></use></svg></span>
                   <p>階段 4</p>
                   <h3>報表產出</h3>
                 </div>

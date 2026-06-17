@@ -38,6 +38,21 @@ button {
   cursor: pointer;
 }
 
+.icon-sprite {
+  display: none;
+}
+
+.icon {
+  width: 1.08em;
+  height: 1.08em;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 292px 1fr;
@@ -129,8 +144,13 @@ h1 {
 }
 
 .primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   color: #1c2433;
   background: #f4cb72;
+  box-shadow: 0 8px 22px rgba(244, 203, 114, 0.18);
 }
 
 .scenario-list {
@@ -177,8 +197,10 @@ h1 {
 
 .storage-panel button,
 .file-import {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   color: #f9f5ea;
   border: 1px solid rgba(255, 255, 255, 0.17);
   background: rgba(255, 255, 255, 0.08);
@@ -251,18 +273,54 @@ h1 {
 }
 
 .workflow-tabs button {
+  --tab-accent: var(--teal);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 44px;
   color: #4f5664;
   border: 0;
   border-radius: 7px;
   background: transparent;
   font-weight: 800;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.workflow-tabs button[data-tab="basic"] {
+  --tab-accent: var(--gold);
+}
+
+.workflow-tabs button[data-tab="course"] {
+  --tab-accent: var(--teal);
+}
+
+.workflow-tabs button[data-tab="funding"] {
+  --tab-accent: var(--wine);
+}
+
+.workflow-tabs button[data-tab="reports"] {
+  --tab-accent: var(--green);
+}
+
+.workflow-tabs button[data-tab="cloud"] {
+  --tab-accent: var(--lavender);
+}
+
+.workflow-tabs button:hover {
+  color: var(--tab-accent);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .workflow-tabs button.active {
   color: #fffdf8;
-  background: var(--teal);
-  box-shadow: 0 8px 18px rgba(35, 111, 115, 0.2);
+  background: var(--tab-accent);
+  box-shadow: 0 8px 18px rgba(32, 35, 50, 0.16);
+  transform: translateY(-1px);
 }
 
 .content-grid {
@@ -282,12 +340,27 @@ h1 {
 .panel,
 .summary-board,
 .report-panel {
+  --panel-accent: var(--teal);
   min-width: 0;
   padding: 22px;
   border: 1px solid rgba(32, 35, 50, 0.08);
   border-radius: 8px;
   background: var(--white);
   box-shadow: 0 12px 28px rgba(41, 36, 24, 0.08);
+}
+
+.panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  opacity: 0.6;
+  background: var(--panel-accent);
 }
 
 .panel-heading,
@@ -299,6 +372,29 @@ h1 {
   margin-bottom: 18px;
 }
 
+.heading-copy {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: center;
+}
+
+.heading-copy p,
+.heading-copy h3 {
+  grid-column: 2;
+}
+
+.section-icon {
+  display: grid;
+  grid-row: 1 / span 2;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--panel-accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-accent) 12%, transparent);
+}
+
 .panel-heading h3,
 .summary-heading h3 {
   margin-bottom: 0;
@@ -306,18 +402,22 @@ h1 {
 }
 
 .teachers-panel {
+  --panel-accent: var(--teal);
   border-left: 8px solid var(--teal);
 }
 
 .schedule-panel {
+  --panel-accent: var(--lavender);
   border-left: 8px solid var(--lavender);
 }
 
 .funding-panel {
+  --panel-accent: var(--wine);
   border-left: 8px solid var(--wine);
 }
 
 .basic-panel {
+  --panel-accent: var(--gold);
   border-left: 8px solid var(--gold);
 }
 
@@ -366,6 +466,16 @@ h1 {
   background: #fffdfa;
 }
 
+.basic-grid label,
+.funding-grid label,
+.schedule-grid label,
+.drive-grid label {
+  padding: 12px;
+  border: 1px solid rgba(32, 35, 50, 0.07);
+  border-radius: 8px;
+  background: #fffaf1;
+}
+
 .schedule-range span,
 .drive-status span {
   color: var(--muted);
@@ -380,6 +490,10 @@ h1 {
 
 .inline-action,
 .icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   border: 0;
   border-radius: 8px;
   font-weight: 800;
@@ -394,6 +508,7 @@ h1 {
 .icon-action {
   width: 34px;
   height: 34px;
+  padding: 0;
   color: #fffdf8;
   background: var(--wine);
 }
@@ -445,6 +560,7 @@ h1 {
   border: 1px solid #e2d8c8;
   border-radius: 8px;
   background: #fffdfa;
+  box-shadow: 0 6px 16px rgba(41, 36, 24, 0.04);
 }
 
 .course-row strong {
@@ -457,6 +573,7 @@ h1 {
 }
 
 .drive-panel {
+  --panel-accent: var(--lavender);
   border-left: 8px solid var(--gold);
 }
 
@@ -482,6 +599,11 @@ textarea {
   border: 1px solid #d5cab9;
   border-radius: 8px;
   background: #fffdfa;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9a9286;
 }
 
 input {
@@ -532,6 +654,11 @@ textarea:focus {
   background:
     linear-gradient(145deg, rgba(32, 35, 50, 0.96), rgba(60, 49, 66, 0.94)),
     var(--ink);
+}
+
+.summary-board .section-icon {
+  color: #f4cb72;
+  background: rgba(244, 203, 114, 0.16);
 }
 
 .staff-lines {
@@ -601,6 +728,7 @@ textarea:focus {
 }
 
 .report-panel {
+  --panel-accent: var(--green);
   border-left: 8px solid var(--green);
 }
 
@@ -615,10 +743,25 @@ textarea:focus {
 }
 
 .report-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   min-height: 54px;
   padding: 8px 12px;
   color: #fffdf8;
   background: var(--green);
+  box-shadow: 0 10px 22px rgba(32, 35, 50, 0.12);
+  transition:
+    filter 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.report-actions button:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(32, 35, 50, 0.16);
 }
 
 .report-actions button:nth-child(2) {

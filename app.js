@@ -278,7 +278,7 @@ function renderPeriodRows(scenario) {
           <input data-field="endDate" type="date" value="${period.endDate}" aria-label="結束日期" />
           <input data-field="sectionalSessions" type="number" min="0" step="1" value="${period.sectionalSessions}" aria-label="分部節數" />
           <input data-field="ensembleSessions" type="number" min="0" step="1" value="${period.ensembleSessions}" aria-label="合奏節數" />
-          <button class="icon-action remove-period" type="button" aria-label="刪除此階段">×</button>
+          <button class="icon-action remove-period" type="button" aria-label="刪除此階段"><svg class="icon"><use href="#icon-trash"></use></svg></button>
         </div>`,
     )
     .join("");
