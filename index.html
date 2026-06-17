@@ -7,7 +7,7 @@
     <title>音樂班寒暑訓經費規劃</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body class="auth-required">
     <svg class="icon-sprite" aria-hidden="true">
       <symbol id="icon-plus" viewBox="0 0 24 24">
         <path d="M12 5v14M5 12h14" />
@@ -67,8 +67,95 @@
       <symbol id="icon-trash" viewBox="0 0 24 24">
         <path d="M5 7h14M9 7V5h6v2M8 10v9M12 10v9M16 10v9" />
       </symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M5 21a7 7 0 0 1 14 0" />
+      </symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24">
+        <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+        <path d="M5 11h14v10H5z" />
+      </symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24">
+        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
+        <circle cx="12" cy="12" r="3" />
+      </symbol>
+      <symbol id="icon-key" viewBox="0 0 24 24">
+        <circle cx="8" cy="15" r="4" />
+        <path d="M11 12 20 3M17 6l3 3M14 9l2 2" />
+      </symbol>
     </svg>
-    <div class="app-shell">
+    <section id="authScreen" class="auth-screen" aria-label="系統登入">
+      <aside class="auth-brand">
+        <div class="auth-staff" aria-hidden="true"></div>
+        <div class="auth-mark brand-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div>
+          <p class="rail-label">南屏國小藝才組</p>
+          <h1>音樂班寒暑訓經費規劃</h1>
+        </div>
+        <p class="auth-brand-copy">外聘師資鐘點費、學生自負額與通知單報表，僅供授權人員使用。</p>
+      </aside>
+
+      <main class="auth-main">
+        <form id="loginForm" class="login-card" novalidate>
+          <div class="login-heading">
+            <span class="login-icon"><svg class="icon"><use href="#icon-key"></use></svg></span>
+            <div>
+              <p>資料門禁</p>
+              <h2>系統登入</h2>
+            </div>
+          </div>
+          <p class="login-subtitle">請使用授權帳號進入經費規劃資料</p>
+
+          <label class="login-field">
+            帳號
+            <span>
+              <svg class="icon"><use href="#icon-user"></use></svg>
+              <input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com" />
+            </span>
+          </label>
+
+          <label class="login-field">
+            密碼
+            <span>
+              <svg class="icon"><use href="#icon-lock"></use></svg>
+              <input id="loginPassword" type="password" autocomplete="current-password" placeholder="請輸入密碼" />
+              <button id="togglePasswordBtn" type="button" aria-label="顯示或隱藏密碼"><svg class="icon"><use href="#icon-eye"></use></svg></button>
+            </span>
+          </label>
+
+          <div class="login-options">
+            <label>
+              <input id="rememberDevice" type="checkbox" checked />
+              記住此裝置
+            </label>
+            <span>忘記密碼請洽系統管理者</span>
+          </div>
+
+          <button id="loginSubmitBtn" class="login-submit" type="submit">
+            <svg class="icon"><use href="#icon-key"></use></svg>
+            登入系統
+          </button>
+
+          <div id="authStatus" class="auth-status" role="status">正在檢查登入狀態...</div>
+
+          <details id="authSetupGuide" class="auth-setup">
+            <summary>登入服務設定說明</summary>
+            <ol>
+              <li>建立 Firebase 專案，新增 Web app。</li>
+              <li>在 Authentication 的 Sign-in method 啟用 Email/Password。</li>
+              <li>將 Firebase config 填入 <code>auth-config.js</code>。</li>
+              <li>在 Firebase Authentication 新增可登入的使用者帳號。</li>
+            </ol>
+          </details>
+        </form>
+      </main>
+    </section>
+
+    <div id="appShell" class="app-shell" aria-hidden="true">
       <aside class="sidebar">
         <div class="brand-mark" aria-hidden="true">
           <span></span>
@@ -100,6 +187,7 @@
           <button id="connectDriveBtn" type="button"><svg class="icon"><use href="#icon-cloud"></use></svg>連接 Google Drive</button>
           <button id="uploadDriveBtn" type="button"><svg class="icon"><use href="#icon-upload"></use></svg>備份到雲端</button>
           <button id="loadDriveBtn" type="button"><svg class="icon"><use href="#icon-download"></use></svg>讀取雲端備份</button>
+          <button id="logoutBtn" type="button"><svg class="icon"><use href="#icon-key"></use></svg>登出系統</button>
         </div>
       </aside>
 
@@ -122,6 +210,10 @@
               <span>每生自負額</span>
               <strong id="perStudentTop">$0</strong>
             </div>
+          </div>
+          <div class="user-chip" aria-label="登入帳號">
+            <svg class="icon"><use href="#icon-user"></use></svg>
+            <span id="currentUserEmail">尚未登入</span>
           </div>
         </header>
 
@@ -396,6 +488,7 @@
       </main>
     </div>
 
+    <script src="./auth-config.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

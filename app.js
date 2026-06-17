@@ -2,6 +2,9 @@ const STORAGE_KEY = "musicCampBudgetScenarios.v2";
 const LEGACY_STORAGE_KEY = "musicCampBudgetScenarios.v1";
 const DRIVE_FILE_NAME = "音樂班寒暑訓經費規劃備份.json";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const FIREBASE_SDK_VERSION = "11.10.0";
+const FIREBASE_CONFIG = window.MUSIC_BUDGET_FIREBASE_CONFIG || {};
+const FIREBASE_REQUIRED_KEYS = ["apiKey", "authDomain", "projectId", "appId"];
 
 const $ = (id) => document.getElementById(id);
 const money = (value) =>
@@ -47,6 +50,8 @@ let activeId = scenarios[0].id;
 let dirty = false;
 let driveToken = "";
 let driveFileId = localStorage.getItem("musicCampBudget.driveFileId") || "";
+let firebaseAuth = null;
+let firebaseAuthApi = null;
 
 function defaultScenario() {
   return {
@@ -101,6 +106,134 @@ function loadScenarios() {
   }
 
   return [defaultScenario()];
+}
+
+function hasFirebaseConfig() {
+  return FIREBASE_REQUIRED_KEYS.every((key) => {
+    const value = FIREBASE_CONFIG[key];
+    return typeof value === "string" && value.trim() && !value.includes("YOUR_") && !value.includes("填入");
+  });
+}
+
+function setAuthStatus(message, type = "") {
+  const box = $("authStatus");
+  if (!box) return;
+  box.textContent = message;
+  box.classList.toggle("is-error", type === "error");
+  box.classList.toggle("is-success", type === "success");
+}
+
+function setLoginBusy(isBusy) {
+  const button = $("loginSubmitBtn");
+  if (!button) return;
+  button.disabled = isBusy || !hasFirebaseConfig();
+  button.innerHTML = isBusy
+    ? '<svg class="icon"><use href="#icon-key"></use></svg>登入中...'
+    : '<svg class="icon"><use href="#icon-key"></use></svg>登入系統';
+}
+
+function showAuthenticatedApp(user) {
+  document.body.classList.add("authenticated");
+  $("appShell")?.removeAttribute("aria-hidden");
+  if ($("currentUserEmail")) $("currentUserEmail").textContent = user?.email || "已登入";
+  setAuthStatus("已登入，正在開啟系統。", "success");
+}
+
+function showLogin() {
+  document.body.classList.remove("authenticated");
+  $("appShell")?.setAttribute("aria-hidden", "true");
+  if ($("currentUserEmail")) $("currentUserEmail").textContent = "尚未登入";
+}
+
+function authErrorMessage(error) {
+  const code = error?.code || "";
+  const messages = {
+    "auth/invalid-email": "帳號格式不正確，請輸入 Email 格式的帳號。",
+    "auth/invalid-credential": "帳號或密碼不正確，請確認後再試一次。",
+    "auth/user-disabled": "此帳號已停用，請洽系統管理者。",
+    "auth/too-many-requests": "登入嘗試次數過多，請稍後再試或洽系統管理者。",
+    "auth/network-request-failed": "網路連線失敗，請確認網路後再試一次。",
+  };
+  return messages[code] || "登入失敗，請確認帳號密碼或 Firebase 設定。";
+}
+
+async function loadFirebaseAuth() {
+  if (firebaseAuth && firebaseAuthApi) return firebaseAuthApi;
+  const appModule = await import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-app.js`);
+  const authModule = await import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-auth.js`);
+  const firebaseApp = appModule.initializeApp(FIREBASE_CONFIG);
+  firebaseAuth = authModule.getAuth(firebaseApp);
+  firebaseAuthApi = authModule;
+  return firebaseAuthApi;
+}
+
+async function initAuthGate() {
+  if (!hasFirebaseConfig()) {
+    showLogin();
+    setLoginBusy(false);
+    setAuthStatus("尚未完成 Firebase 登入設定。請先依下方說明填寫 auth-config.js。", "error");
+    $("authSetupGuide")?.setAttribute("open", "");
+    return;
+  }
+
+  try {
+    setLoginBusy(true);
+    setAuthStatus("正在檢查登入狀態...");
+    const authApi = await loadFirebaseAuth();
+    authApi.onAuthStateChanged(firebaseAuth, (user) => {
+      setLoginBusy(false);
+      if (user) showAuthenticatedApp(user);
+      else {
+        showLogin();
+        setAuthStatus("請使用授權帳號登入。");
+      }
+    });
+  } catch {
+    showLogin();
+    setLoginBusy(false);
+    setAuthStatus("Firebase 登入服務載入失敗，請確認網路與 auth-config.js 設定。", "error");
+  }
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  if (!hasFirebaseConfig()) {
+    setAuthStatus("尚未完成 Firebase 登入設定，無法登入。", "error");
+    $("authSetupGuide")?.setAttribute("open", "");
+    return;
+  }
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
+  if (!email || !password) {
+    setAuthStatus("請輸入帳號與密碼。", "error");
+    return;
+  }
+
+  try {
+    setLoginBusy(true);
+    setAuthStatus("正在登入...");
+    const authApi = await loadFirebaseAuth();
+    const persistence = $("rememberDevice")?.checked ? authApi.browserLocalPersistence : authApi.browserSessionPersistence;
+    await authApi.setPersistence(firebaseAuth, persistence);
+    await authApi.signInWithEmailAndPassword(firebaseAuth, email, password);
+    $("loginPassword").value = "";
+  } catch (error) {
+    setLoginBusy(false);
+    setAuthStatus(authErrorMessage(error), "error");
+  }
+}
+
+async function logout() {
+  if (!firebaseAuth) {
+    showLogin();
+    return;
+  }
+  const authApi = firebaseAuthApi || (await loadFirebaseAuth());
+  await authApi.signOut(firebaseAuth);
+  driveToken = "";
+  updateDriveStatus();
+  showLogin();
+  setAuthStatus("已登出系統。");
 }
 
 function normalizeScenario(raw) {
@@ -424,6 +557,13 @@ function markDirty() {
   updateCalculations();
 }
 
+$("loginForm").addEventListener("submit", handleLogin);
+$("togglePasswordBtn").addEventListener("click", () => {
+  const password = $("loginPassword");
+  password.type = password.type === "password" ? "text" : "password";
+  $("togglePasswordBtn").setAttribute("aria-label", password.type === "password" ? "顯示密碼" : "隱藏密碼");
+});
+
 document.addEventListener("input", (event) => {
   if (event.target.closest(".workspace") || event.target.closest(".sidebar")) markDirty();
 });
@@ -553,6 +693,7 @@ $("importJsonInput").addEventListener("change", async (event) => {
 $("connectDriveBtn").addEventListener("click", connectDrive);
 $("uploadDriveBtn").addEventListener("click", uploadDriveBackup);
 $("loadDriveBtn").addEventListener("click", loadDriveBackup);
+$("logoutBtn").addEventListener("click", logout);
 $("downloadBudgetPdf").addEventListener("click", () => exportPdf("budget"));
 $("downloadNoticePdf").addEventListener("click", () => exportPdf("notice"));
 $("downloadBudgetXlsx").addEventListener("click", exportXlsx);
@@ -1320,3 +1461,4 @@ function downloadBlob(blob, filename) {
 
 writeForm(getActive());
 persist();
+initAuthGate();
