@@ -530,12 +530,83 @@ function sessionDaysText(scenario) {
   return `${scenario.periods.length} 階段`;
 }
 
+function noticeSummaryRows(scenario, calc) {
+  return [
+    ["訓練對象", `${scenario.ensembleName}團員`, `${scenario.studentCount} 人`],
+    ["訓練日期", periodSummaryText(scenario), sessionDaysText(scenario)],
+    ["費用計算", `${money(calc.totalFee)} - ${money(calc.subsidy)} = ${money(calc.selfPayTotal)}`, `每生 ${money(calc.perStudent)}`],
+    ["繳費期限", dateText(scenario.paymentDue), scenario.collectionMethod || scenario.paymentNote || ""],
+  ];
+}
+
+function noticeScheduleRows(scenario) {
+  return scenario.periods.map((period) => [
+    period.name,
+    `${dateText(period.startDate)} 至 ${dateText(period.endDate)}`,
+    `分部 ${period.sectionalSessions} 節\n合奏 ${period.ensembleSessions} 節`,
+  ]);
+}
+
+function budgetReportSections(scenario, calc) {
+  return [
+    {
+      title: "一、經費摘要",
+      headers: ["項目", "內容", "說明"],
+      rows: [
+        ["情境名稱", scenario.name, campLabel(scenario)],
+        ["總期程", periodRangeText(scenario), `${scenario.periods.length} 個階段`],
+        ["外聘老師合計", `${calc.teacherTotal} 人`, `教師鐘點堂數 ${calc.classCount} 堂`],
+        ["鐘點費總額", money(calc.totalFee), "分部課與合奏課程合計"],
+      ],
+    },
+    {
+      title: "二、課程與師資明細",
+      headers: ["課程類型", "老師人數", "累計節數", "每堂單價", "小計"],
+      rows: calc.courseDetails.map((course) => [
+        course.label,
+        `${course.teachers} 人`,
+        `${course.sessions} 節`,
+        money(course.rate),
+        money(course.subtotal),
+      ]),
+    },
+    {
+      title: "三、階段期程與節數",
+      headers: ["階段", "日期", "分部節數", "合奏節數", "合計節數"],
+      rows: scenario.periods.map((period) => [
+        period.name,
+        `${dateText(period.startDate)} 至 ${dateText(period.endDate)}`,
+        `${period.sectionalSessions} 節`,
+        `${period.ensembleSessions} 節`,
+        `${Number(period.sectionalSessions || 0) + Number(period.ensembleSessions || 0)} 節`,
+      ]),
+    },
+    {
+      title: "四、公費與學生分攤",
+      headers: ["項目", "金額 / 人數", "計算說明"],
+      rows: [
+        ["鐘點費總額", money(calc.totalFee), "課程明細小計加總"],
+        ["公費補助", money(calc.subsidy), "以設定額度為上限，最高不超過總額"],
+        ["學生需分攤總額", money(calc.selfPayTotal), "鐘點費總額 - 公費補助"],
+        [`${scenario.ensembleName}學生人數`, `${scenario.studentCount} 人`, "作為平均分攤人數"],
+        ["每生應繳", money(calc.perStudent), "學生需分攤總額 / 學生人數，採無條件進位"],
+      ],
+    },
+  ];
+}
+
 function noticePreviewHtml(scenario, calc) {
   const reminders = reminderLines(scenario).slice(0, 3);
-  const scheduleRows = scenario.periods
+  const summaryRows = noticeSummaryRows(scenario, calc)
     .map(
-      (period) =>
-        `<tr><td>${escapeHtml(period.name)}</td><td>${dateText(period.startDate)} 至 ${dateText(period.endDate)}</td><td>分部 ${period.sectionalSessions} 節<br>合奏 ${period.ensembleSessions} 節</td></tr>`,
+      (row) =>
+        `<tr><td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1]).replaceAll("\n", "<br>")}</td><td>${escapeHtml(row[2]).replaceAll("\n", "<br>")}</td></tr>`,
+    )
+    .join("");
+  const scheduleRows = noticeScheduleRows(scenario)
+    .map(
+      (row) =>
+        `<tr><td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1])}</td><td>${escapeHtml(row[2]).replaceAll("\n", "<br>")}</td></tr>`,
     )
     .join("");
   return `
@@ -545,10 +616,7 @@ function noticePreviewHtml(scenario, calc) {
       <div class="notice-section-title">一、繳費與訓練重點</div>
       <table class="notice-mini-table">
         <tr><th>項目</th><th>內容</th><th>提醒</th></tr>
-        <tr><td>訓練對象</td><td>${escapeHtml(scenario.ensembleName)}團員</td><td>${scenario.studentCount} 人</td></tr>
-        <tr><td>訓練日期</td><td>${escapeHtml(periodSummaryText(scenario)).replaceAll("\n", "<br>")}</td><td>${sessionDaysText(scenario)}</td></tr>
-        <tr><td>費用計算</td><td>${money(calc.totalFee)} - ${money(calc.subsidy)} = ${money(calc.selfPayTotal)}</td><td>每生 ${money(calc.perStudent)}</td></tr>
-        <tr><td>繳費期限</td><td>${dateText(scenario.paymentDue)}</td><td>${escapeHtml(scenario.collectionMethod || scenario.paymentNote)}</td></tr>
+        ${summaryRows}
       </table>
       <div class="notice-section-title">二、重要提醒</div>
       <div>${reminders.map((line) => `• ${escapeHtml(line)}`).join("<br>")}</div>
@@ -561,57 +629,141 @@ function noticePreviewHtml(scenario, calc) {
 function exportPdf(type) {
   const scenario = readForm();
   const calc = calculate(scenario);
-  const lines =
-    type === "notice"
-      ? [
-          `${scenario.schoolName}${scenario.ensembleName}${campLabel(scenario)}繳費通知單`,
-          "",
-          "親愛的家長您好：",
-          `本次${campLabel(scenario)}分為 ${scenario.periods.length} 個上課階段，總期程為 ${periodRangeText(
-            scenario,
-          )}。外聘師資鐘點費扣除公費補助後，由弦樂 A 團學生平均分攤。`,
-          "",
-          `每生應繳：${money(calc.perStudent)}`,
-          `繳費期限：${dateText(scenario.paymentDue)}`,
-          `收款方式：${scenario.collectionMethod || scenario.paymentNote || "無"}`,
-          ...reminderLines(scenario).map((line) => `提醒：${line}`),
-        ]
-      : [`${scenario.name} 經費分攤報表`, "", ...reportRows(scenario).map((r) => `${r[0]}：${r[1]}`)];
-  const blob = createCanvasPdf(lines, type === "notice" ? "繳費通知單" : "經費分攤報表");
+  const blob = type === "notice" ? createNoticePdf(scenario, calc) : createBudgetPdf(scenario, calc);
   downloadBlob(blob, `${scenario.name}-${type === "notice" ? "繳費通知單" : "經費分攤報表"}.pdf`);
 }
 
-function createCanvasPdf(lines, footer) {
+function createNoticePdf(scenario, calc) {
   const width = 1240;
   const height = 1754;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
+  setupPdfCanvas(ctx, width, height);
+  let y = 92;
+  y = drawPdfTitle(ctx, `${scenario.schoolName}${scenario.ensembleName} ${scenario.schoolYear} 年${campLabel(scenario)}暨繳費通知單`, y);
+  ctx.fillStyle = "#555555";
+  ctx.font = '24px "Microsoft JhengHei", sans-serif';
+  drawCenteredText(ctx, "敬請家長協助學生預留訓練時間，並於期限前完成繳費。", width / 2, y + 8);
+  y += 72;
+  y = drawPdfSection(ctx, "一、繳費與訓練重點", y);
+  y = drawCanvasTable(ctx, ["項目", "內容", "提醒"], noticeSummaryRows(scenario, calc), [180, 700, 220], 90, y, {
+    headerFill: "#fff5de",
+    fontSize: 24,
+  });
+  y = drawPdfSection(ctx, "二、重要提醒", y + 24);
+  reminderLines(scenario).forEach((line) => {
+    wrapCanvasText(ctx, `• ${line}`, 1040).forEach((part) => {
+      ctx.fillStyle = "#202332";
+      ctx.font = '24px "Microsoft JhengHei", sans-serif';
+      ctx.fillText(part, 98, y);
+      y += 34;
+    });
+  });
+  y = drawPdfSection(ctx, "三、上課日期與課程安排", y + 18);
+  y = drawCanvasTable(ctx, ["階段", "日期", "節數"], noticeScheduleRows(scenario), [180, 690, 230], 90, y, {
+    headerFill: "#fff5de",
+    fontSize: 24,
+  });
+  drawPdfFooter(ctx, "繳費通知單", height);
+  return imageDataToPdf(canvas.toDataURL("image/jpeg", 0.92), width, height);
+}
+
+function createBudgetPdf(scenario, calc) {
+  const width = 1240;
+  const height = 1754;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  setupPdfCanvas(ctx, width, height);
+  let y = 92;
+  y = drawPdfTitle(ctx, `${scenario.name} 經費分攤報表`, y);
+  const sections = budgetReportSections(scenario, calc);
+  sections.forEach((section, index) => {
+    y = drawPdfSection(ctx, section.title, y + (index ? 18 : 0));
+    y = drawCanvasTable(ctx, section.headers, section.rows, tableWidths(section.headers.length), 90, y, {
+      headerFill: index === 3 ? "#fff5de" : "#f2f4f7",
+      fontSize: 22,
+    });
+  });
+  drawPdfFooter(ctx, "經費分攤報表", height);
+  return imageDataToPdf(canvas.toDataURL("image/jpeg", 0.92), width, height);
+}
+
+function setupPdfCanvas(ctx, width, height) {
   ctx.fillStyle = "#fffdf8";
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = "#202332";
-  ctx.font = '700 48px "Microsoft JhengHei", sans-serif';
-  ctx.fillText(lines[0], 90, 125);
-  ctx.strokeStyle = "#b8872f";
-  ctx.lineWidth = 8;
+}
+
+function drawPdfTitle(ctx, title, y) {
+  ctx.fillStyle = "#202332";
+  ctx.font = '700 42px "Microsoft JhengHei", sans-serif';
+  drawCenteredText(ctx, title, 620, y);
+  ctx.strokeStyle = "#236f73";
+  ctx.lineWidth = 6;
   ctx.beginPath();
-  ctx.moveTo(90, 154);
-  ctx.lineTo(1150, 154);
+  ctx.moveTo(90, y + 32);
+  ctx.lineTo(1150, y + 32);
   ctx.stroke();
-  ctx.font = '30px "Microsoft JhengHei", sans-serif';
-  let y = 225;
-  lines.slice(1).forEach((line) => {
-    wrapCanvasText(ctx, line, 1060).forEach((part) => {
-      if (y < height - 130) ctx.fillText(part, 90, y);
-      y += 48;
+  return y + 86;
+}
+
+function drawPdfSection(ctx, title, y) {
+  ctx.fillStyle = "#236f73";
+  ctx.font = '700 28px "Microsoft JhengHei", sans-serif';
+  ctx.fillText(title, 90, y);
+  return y + 24;
+}
+
+function drawCenteredText(ctx, text, x, y) {
+  ctx.fillText(text, x - ctx.measureText(text).width / 2, y);
+}
+
+function drawCanvasTable(ctx, headers, rows, widths, x, y, options = {}) {
+  const fontSize = options.fontSize || 22;
+  const paddingX = 14;
+  const paddingY = 12;
+  const lineHeight = fontSize + 8;
+  const allRows = [headers, ...rows];
+  allRows.forEach((row, rowIndex) => {
+    const linesByCell = row.map((cell, index) => {
+      ctx.font = `${rowIndex === 0 ? "700" : "400"} ${fontSize}px "Microsoft JhengHei", sans-serif`;
+      return String(cell || "")
+        .split("\n")
+        .flatMap((line) => wrapCanvasText(ctx, line, widths[index] - paddingX * 2));
     });
-    if (!line) y += 14;
+    const rowHeight = Math.max(48, Math.max(...linesByCell.map((lines) => lines.length)) * lineHeight + paddingY * 2);
+    let cx = x;
+    row.forEach((cell, index) => {
+      ctx.fillStyle = rowIndex === 0 ? options.headerFill || "#f2f4f7" : "#fffdfa";
+      ctx.fillRect(cx, y, widths[index], rowHeight);
+      ctx.strokeStyle = "#d8d1c5";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx, y, widths[index], rowHeight);
+      ctx.fillStyle = "#202332";
+      ctx.font = `${rowIndex === 0 ? "700" : "400"} ${fontSize}px "Microsoft JhengHei", sans-serif`;
+      linesByCell[index].forEach((line, lineIndex) => {
+        ctx.fillText(line, cx + paddingX, y + paddingY + fontSize + lineIndex * lineHeight);
+      });
+      cx += widths[index];
+    });
+    y += rowHeight;
   });
+  return y + 10;
+}
+
+function tableWidths(count) {
+  if (count === 5) return [210, 180, 190, 220, 300];
+  return [210, 620, 270];
+}
+
+function drawPdfFooter(ctx, label, height) {
   ctx.fillStyle = "#69707d";
-  ctx.font = '24px "Microsoft JhengHei", sans-serif';
-  ctx.fillText(`${footer}・${new Date().toLocaleDateString("zh-TW")}`, 90, height - 80);
-  return imageDataToPdf(canvas.toDataURL("image/jpeg", 0.92), width, height);
+  ctx.font = '22px "Microsoft JhengHei", sans-serif';
+  ctx.fillText(`${label}・第 1 / 1 頁・${new Date().toLocaleDateString("zh-TW")}`, 90, height - 70);
 }
 
 function wrapCanvasText(ctx, text, maxWidth) {
@@ -674,17 +826,27 @@ function byteLength(parts) {
 
 function exportXlsx() {
   const scenario = readForm();
-  const rows = [["項目", "內容"], ...reportRows(scenario)];
+  const calc = calculate(scenario);
+  const rows = [[`${scenario.name} 經費分攤報表`], []];
+  budgetReportSections(scenario, calc).forEach((section) => {
+    rows.push([section.title]);
+    rows.push(section.headers);
+    section.rows.forEach((row) => rows.push(row));
+    rows.push([]);
+  });
   const sheetRows = rows
     .map(
       (row, index) =>
         `<row r="${index + 1}">${row
           .map((cell, col) => {
-            const ref = `${col === 0 ? "A" : "B"}${index + 1}`;
+            const ref = `${columnName(col)}${index + 1}`;
             return `<c r="${ref}" t="inlineStr"><is><t>${xml(cell)}</t></is></c>`;
           })
           .join("")}</row>`,
     )
+    .join("");
+  const cols = [24, 24, 24, 18, 22]
+    .map((width, index) => `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`)
     .join("");
   downloadBlob(
     zipFiles({
@@ -692,25 +854,26 @@ function exportXlsx() {
       "_rels/.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
       "xl/workbook.xml": `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="經費分攤" sheetId="1" r:id="rId1"/></sheets></workbook>`,
       "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
-      "xl/worksheets/sheet1.xml": `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData></worksheet>`,
+      "xl/worksheets/sheet1.xml": `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${cols}</cols><sheetData>${sheetRows}</sheetData></worksheet>`,
     }),
     `${scenario.name}-經費分攤.xlsx`,
   );
 }
 
+function columnName(index) {
+  let name = "";
+  index += 1;
+  while (index > 0) {
+    const remainder = (index - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    index = Math.floor((index - 1) / 26);
+  }
+  return name;
+}
+
 function exportNoticeDocx() {
   const scenario = readForm();
   const calc = calculate(scenario);
-  const summaryRows = [
-    ["訓練對象", `${scenario.ensembleName}團員`, `${scenario.studentCount} 人`],
-    ["訓練日期", periodSummaryText(scenario), sessionDaysText(scenario)],
-    ["費用計算", `${money(calc.totalFee)} - ${money(calc.subsidy)} = ${money(calc.selfPayTotal)}`, `每生 ${money(calc.perStudent)}`],
-    ["繳費期限", dateText(scenario.paymentDue), scenario.collectionMethod || scenario.paymentNote || ""],
-  ];
-  const scheduleRows = scenario.periods.flatMap((period) => [
-    [period.name, `${dateText(period.startDate)} 至 ${dateText(period.endDate)}`, "分部課程", "各分部教室", "各分部老師"],
-    [period.name, `${dateText(period.startDate)} 至 ${dateText(period.endDate)}`, "合奏課程", "二樓團輔教室", "指揮老師"],
-  ]);
   const body = [
     wParagraph(`${scenario.schoolName}${scenario.ensembleName} ${scenario.schoolYear} 年${campLabel(scenario)}暨繳費通知單`, {
       size: 38,
@@ -725,13 +888,11 @@ function exportNoticeDocx() {
       after: 100,
     }),
     wHeading("一、繳費與訓練重點"),
-    wTable(["項目", "內容", "提醒"], summaryRows, [1500, 6500, 1900], "FFF5DE"),
+    wTable(["項目", "內容", "提醒"], noticeSummaryRows(scenario, calc), [1500, 6500, 1900], "FFF5DE"),
     wHeading("二、重要提醒"),
     ...reminderLines(scenario).map((line) => wParagraph(`• ${line}`, { size: 22, after: 30 })),
     wHeading("三、上課日期與課程安排"),
-    wTable(["階段", "日期", "課程", "地點", "老師"], scheduleRows, [1300, 3100, 1500, 2100, 1900], "F2F4F7"),
-    wHeading("四、分部課程地點與學生"),
-    wTable(["分部", "上課地點", "學生"], rosterRows(scenario), [2400, 2500, 7000], "F2F4F7"),
+    wTable(["階段", "日期", "節數"], noticeScheduleRows(scenario), [1500, 6500, 1900], "F2F4F7"),
     wParagraph("敬祝  闔家平安", { size: 21, before: 80 }),
     wParagraph(`${scenario.organizerName || scenario.schoolName}  ${noticeDateText(scenario)}`, {
       size: 21,
