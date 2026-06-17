@@ -311,6 +311,30 @@
                   <strong id="driveStatus">尚未連接</strong>
                 </div>
               </div>
+              <div class="oauth-guide" aria-label="取得 Google OAuth Client ID 操作說明">
+                <div class="guide-card">
+                  <h4>取得 Client ID 步驟</h4>
+                  <ol>
+                    <li>開啟 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer">Google Cloud Console 憑證頁</a>，選擇或建立一個專案。</li>
+                    <li>到 <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noreferrer">Google Drive API</a> 頁面，確認已啟用。</li>
+                    <li>若系統要求設定 Google Auth Platform，先完成應用程式名稱、使用者支援信箱與 Test users。</li>
+                    <li>點選「建立憑證」或「Create client」，類型選擇「Web application」。</li>
+                    <li>在「Authorized JavaScript origins」加入本系統網址。</li>
+                    <li>建立後複製「Client ID」，貼回上方欄位，再按左側的「連接 Google Drive」。</li>
+                  </ol>
+                </div>
+                <div class="guide-card guide-note">
+                  <h4>本系統要填的來源網址</h4>
+                  <p>正式使用請填：</p>
+                  <code>https://mihsia.github.io</code>
+                  <p>若在本機測試，另加：</p>
+                  <code>http://localhost:8765</code>
+                  <p>若網址列顯示 127.0.0.1，另加：</p>
+                  <code>http://127.0.0.1:8765</code>
+                  <p class="hint-text">不要填完整路徑、不要加星號。設定剛完成可能需等待數分鐘才會生效。</p>
+                  <p class="hint-text">此系統只需要 Client ID；Client secret 是伺服器端使用，不需要貼到網頁中。</p>
+                </div>
+              </div>
             </section>
           </div>
 

@@ -648,6 +648,70 @@ h1 {
   gap: 14px;
 }
 
+.oauth-guide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.guide-card {
+  padding: 16px;
+  border: 1px solid rgba(32, 35, 50, 0.08);
+  border-radius: 8px;
+  background: #fffaf1;
+}
+
+.guide-card h4 {
+  margin-bottom: 10px;
+  color: #2d3340;
+  font-size: 16px;
+}
+
+.guide-card ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+  color: #424756;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.guide-card a {
+  color: var(--teal);
+  font-weight: 900;
+}
+
+.guide-card p {
+  margin-bottom: 6px;
+  color: #424756;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.guide-card code {
+  display: block;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  color: #2d3340;
+  border: 1px solid #d8d1c5;
+  border-radius: 8px;
+  background: #fffdfa;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.guide-note {
+  border-color: rgba(111, 102, 153, 0.22);
+  background: #f8f6fb;
+}
+
+.hint-text {
+  color: var(--muted) !important;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -937,6 +1001,7 @@ textarea:focus {
   .funding-grid,
   .basic-grid,
   .drive-grid,
+  .oauth-guide,
   .totals-strip,
   .report-actions,
   .report-actions-inline {
